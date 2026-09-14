@@ -161,6 +161,12 @@ export class DataSourceRegistry extends Service {
       return adapter
     })()
     this.live.set(id, opening)
+    // A failed open must not be cached forever: evict it so the next call
+    // (e.g. after fixing credentials) attempts a fresh connection instead of
+    // permanently re-throwing the first failure.
+    opening.catch(() => {
+      if (this.live.get(id) === opening) this.live.delete(id)
+    })
 
     if (this.disposed) throw new DataAgentError('Data source registry is disposing', REGISTRY_DISPOSED_CODE)
     const adapter = await opening

@@ -30,8 +30,17 @@ function quoteIdentifier(name: string): string {
  */
 export class SqliteAdapter implements DataSourceAdapter {
   private db: DatabaseSync | undefined
+  private readonly record: DataSourceRecord
 
-  constructor(private readonly record: DataSourceRecord) {}
+  // TypeScript parameter-property shorthand is intentionally avoided
+  // throughout this plugin: the real `dsh` CLI loads out-of-tree plugin
+  // source through Node's native type-stripping ("strip-only mode"), which
+  // errors on parameter properties since they require actual code
+  // generation, not just type erasure. Verified directly against a real
+  // `dsh --profile web` boot, not assumed.
+  constructor(record: DataSourceRecord) {
+    this.record = record
+  }
 
   async connect(): Promise<void> {
     try {

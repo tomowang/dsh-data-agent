@@ -4,4 +4,4 @@
     - id: data-agent
       name: dsh-data-agent
       config:
-        verbose: false
+        defaultMaxRows: 500

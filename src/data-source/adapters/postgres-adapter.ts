@@ -35,8 +35,14 @@ interface TableRow {
 /** PostgreSQL via `pg` — pure JS, no native compilation. */
 export class PostgresAdapter implements DataSourceAdapter {
   private poolInstance: pg.Pool | undefined
+  private readonly ctx: Context
+  private readonly record: DataSourceRecord
 
-  constructor(private readonly ctx: Context, private readonly record: DataSourceRecord) {}
+  // No TypeScript parameter-property shorthand — see sqlite-adapter.ts.
+  constructor(ctx: Context, record: DataSourceRecord) {
+    this.ctx = ctx
+    this.record = record
+  }
 
   async connect(): Promise<void> {
     const password = await resolveSecret(this.ctx, this.record.passwordEnv)
