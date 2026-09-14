@@ -2,3 +2,7 @@ node_modules/
 *.tsbuildinfo
 .env
 .DS_Store
+# lib/client.js itself is committed (see README: shipped prebuilt to avoid
+# the git-install allowBuilds friction) but its sourcemap is large and
+# regenerable via `pnpm run build:client`.
+lib/client.js.map
