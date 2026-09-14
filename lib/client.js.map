@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/client/index.ts"],
+  "sourcesContent": ["import type { Context } from '@deepseek-ai/cordis'\n\n// Milestone 0 placeholder: proves the browser-bundle contract (banner/footer,\n// externals, dsh.client manifest wiring) actually loads inside a real running\n// `web` profile before any real card is built on top of it. Replaced by the\n// real client plugin (tool.call.toolview + settings.section registrations)\n// once this is verified.\nexport const inject = ['slots']\n\nexport function apply(_ctx: Context): void {\n  console.log('[dsh-data-agent] client bundle factory executed')\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAOO,IAAM,SAAS,CAAC,OAAO;AAEvB,SAAS,MAAM,MAAqB;AACzC,UAAQ,IAAI,iDAAiD;AAC/D;",
+  "names": []
+}
