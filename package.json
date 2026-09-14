@@ -1,0 +1,35 @@
+{
+  "name": "dsh-data-agent",
+  "version": "0.1.0",
+  "description": "A DeepSeek Harness (dsh) plugin bundle.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "files": [
+    "src",
+    "cordis.patch.yml"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "dsh plugin --profile web add ."
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "@types/node": "^22.20.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.22.4",
+    "vitest": "^4.1.8"
+  }
+}

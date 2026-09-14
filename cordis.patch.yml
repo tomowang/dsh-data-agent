@@ -1,0 +1,7 @@
+# Applied as a bundle layer when a profile lists `dsh-data-agent`
+# (see package.json → dsh.bundle.patch).
+- insert:
+    - id: data-agent
+      name: dsh-data-agent
+      config:
+        verbose: false

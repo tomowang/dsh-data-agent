@@ -1,0 +1,7 @@
+packages:
+  - .
+
+# esbuild (pulled in by vitest) ships a postinstall that only fetches its
+# platform binary; pnpm 10+ blocks unreviewed install scripts by default.
+allowBuilds:
+  esbuild: true
