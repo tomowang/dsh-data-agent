@@ -1,7 +1,7 @@
 {
   "name": "dsh-data-agent",
   "version": "0.1.0",
-  "description": "A DeepSeek Harness (dsh) plugin bundle.",
+  "description": "DeepSeek Harness (dsh) plugin: manage database connections, browse and annotate schemas, and run SQL (with a read-only toggle and chart rendering), both conversationally and from the Web UI's Settings page.",
   "license": "MIT",
   "private": true,
   "type": "module",
