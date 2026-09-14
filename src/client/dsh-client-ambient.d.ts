@@ -19,12 +19,17 @@ declare module '@deepseek-ai/cordis' {
 
   interface SlotRegistration<Props> {
     name: string
-    key: string
+    /** Discriminant for a `kind: 'keyed'` slot (e.g. `tool.call.toolview`). */
+    key?: string
+    /** Discriminant + nav identity for a `kind: 'list'` slot (e.g. `settings.section`). */
+    id?: string
+    /** Nav/list position; lower sorts first. */
+    order?: number
+    /** Registrant-localized display text — a function, re-invoked on locale change. */
+    label?: () => string
     locale?: string
     children?: Record<string, SlotChildDescriptor>
-    inject?: () => readonly string[]
-    order?: number
-    label?: string
+    inject?: () => Record<string, unknown>
   }
 
   interface SlotsService {

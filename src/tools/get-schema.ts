@@ -1,31 +1,10 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { getSourceComments } from '../data-source/persistence/comments-store.ts'
-import type { ColumnInfo, SchemaResult, TableInfo } from '../data-source/types.ts'
+import { mergeSchemaComments } from '../data-source/schema-comments.ts'
+import type { SchemaResult } from '../data-source/types.ts'
 import { asRecord, optionalString, requireString } from './tool-types.ts'
 
 const NAME = 'get_schema'
-
-interface TableComments {
-  comment?: string
-  columns?: Record<string, string>
-}
-
-/** comments.json wins over a native comment; a differing native comment is kept as `nativeComment`. */
-function mergeComment(overlay: string | undefined, native: string | undefined): Pick<TableInfo, 'comment' | 'nativeComment'> {
-  const comment = overlay ?? native
-  const nativeComment = native !== undefined && native !== comment ? native : undefined
-  return { comment, ...(nativeComment !== undefined ? { nativeComment } : {}) }
-}
-
-function mergeTable(table: TableInfo, comments: Record<string, TableComments>): TableInfo {
-  const overlay = comments[table.name]
-  const tableComment = mergeComment(overlay?.comment, table.comment)
-  const columns = table.columns?.map((column: ColumnInfo) => ({
-    ...column,
-    ...mergeComment(overlay?.columns?.[column.name], column.comment),
-  }))
-  return { ...table, ...tableComment, ...(columns !== undefined ? { columns } : {}) }
-}
 
 export function applyGetSchemaTool(ctx: Context): void {
   ctx.tools.register({
@@ -118,7 +97,7 @@ export function applyGetSchemaTool(ctx: Context): void {
       const adapter = await ctx.dataAgent.getAdapter(sourceId)
       const schema = await adapter.getSchema({ table, schemaName })
       const comments = await getSourceComments(sourceId)
-      return { ...schema, tables: schema.tables.map(t => mergeTable(t, comments)) }
+      return mergeSchemaComments(schema, comments)
     },
   })
 }

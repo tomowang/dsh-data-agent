@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { DataSourceRegistry } from './data-source/registry.ts'
+import { applySettingsApiRoutes } from './settings-api/routes.ts'
 import { applyAddDataSourceTool } from './tools/add-data-source.ts'
 import { applyGetSchemaTool } from './tools/get-schema.ts'
 import { applyListDataSourcesTool } from './tools/list-data-sources.ts'
@@ -37,5 +38,14 @@ export function apply(ctx: Context, config: Config): void {
       applySetCommentTool(toolsCtx)
       applyRunSqlTool(toolsCtx, config.defaultMaxRows)
     },
+  })
+
+  // Settings-page API: a separate composition unit so it simply never
+  // activates on a profile with no webServer (headless/ACP), rather than
+  // failing the whole plugin.
+  ctx.plugin({
+    name: 'dsh-data-agent-settings-api',
+    inject: ['webServer', 'dataAgent'],
+    apply: applySettingsApiRoutes,
   })
 }
