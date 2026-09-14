@@ -39,13 +39,12 @@
     "pg": "^8.13.0",
     "node-sql-parser": "^5.3.0",
     "@deepseek-ai/dsh-home-paths": "0.0.1-rc.3",
-    "@deepseek-ai/dsh-atomic-write": "0.0.1-rc.1"
+    "@deepseek-ai/dsh-atomic-write": "0.0.1-rc.1",
+    "@deepseek-ai/dsh-credentials": "0.0.1-rc.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/schemastery": "^3.18.2",
-    "@deepseek-ai/dsh-credentials": "0.0.1-rc.1",
-    "@deepseek-ai/dsh-host-webserver": "0.0.1-rc.1",
     "@types/node": "^22.20.0",
     "@types/pg": "^8.11.0",
     "@types/react": "^18.3.0",
