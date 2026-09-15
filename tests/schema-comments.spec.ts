@@ -22,10 +22,10 @@ describe('mergeSchemaComments', () => {
 
     const merged = mergeSchemaComments(schema, {})
 
-    expect('comment' in merged.tables[0]).toBe(false)
-    expect('nativeComment' in merged.tables[0]).toBe(false)
-    expect('comment' in merged.tables[0].columns![0]).toBe(false)
-    expect('nativeComment' in merged.tables[0].columns![0]).toBe(false)
+    expect('comment' in merged.tables[0]!).toBe(false)
+    expect('nativeComment' in merged.tables[0]!).toBe(false)
+    expect('comment' in merged.tables[0]!.columns![0]!).toBe(false)
+    expect('nativeComment' in merged.tables[0]!.columns![0]!).toBe(false)
 
     // A tool result must be lossless JSON: no explicit `undefined` values survive a round-trip.
     expect(JSON.parse(JSON.stringify(merged))).toEqual(merged)
@@ -44,7 +44,7 @@ describe('mergeSchemaComments', () => {
 
     const merged = mergeSchemaComments(schema, { orders: { comment: 'overlay comment' } })
 
-    expect(merged.tables[0].comment).toBe('overlay comment')
-    expect(merged.tables[0].nativeComment).toBe('native comment')
+    expect(merged.tables[0]!.comment).toBe('overlay comment')
+    expect(merged.tables[0]!.nativeComment).toBe('native comment')
   })
 })
