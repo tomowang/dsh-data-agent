@@ -9,7 +9,7 @@
 // and not published for out-of-tree plugins to import).
 import * as esbuild from 'esbuild'
 
-const PACKAGE_ID = 'dsh-data-agent'
+const PACKAGE_ID = '@tomowang/dsh-data-agent'
 
 const PLATFORM_EXTERNALS = [
   'react',
