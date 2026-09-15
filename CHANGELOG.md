@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.1.0] - 2026-09-15
+## [0.1.1] - 2026-09-15
 
 ### Bug Fixes
 
@@ -10,6 +10,11 @@ All notable changes to this project are documented in this file.
 - Omit undefined optional keys from add_data_source output
 - Omit undefined comment keys from MySQL/Postgres adapter output
 - Surface connection-test failure when the connection itself fails to open
+- Rebuild the client bundle under the renamed package id
+
+### CI/Build
+
+- Publish to npm via tag-triggered release workflow
 
 ### Chores
 
@@ -17,6 +22,7 @@ All notable changes to this project are documented in this file.
 - Add MIT license
 - Scaffold dsh plugin bundle project
 - Stop tracking the client bundle sourcemap in git
+- Drop the git-install path, stop tracking lib/client.js
 
 ### Documentation
 
