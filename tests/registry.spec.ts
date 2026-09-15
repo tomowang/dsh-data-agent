@@ -96,6 +96,21 @@ describe('DataSourceRegistry', () => {
     await dispose()
   })
 
+  it('omits unset optional fields from the added record entirely, rather than setting them to undefined', async () => {
+    const { registry, dispose } = await createRegistry()
+    const record = await registry.addSource({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })
+
+    for (const key of ['host', 'port', 'user', 'passwordEnv', 'ssl', 'sslmode', 'sslrootcert', 'description']) {
+      expect(key in record).toBe(false)
+    }
+
+    // A tool result must be lossless JSON: no explicit `undefined` values survive a round-trip.
+    expect(JSON.parse(JSON.stringify(record))).toEqual(record)
+    expect(JSON.parse(JSON.stringify(await registry.list()))).toEqual(await registry.list())
+
+    await dispose()
+  })
+
   it('rejects operations after disposal', async () => {
     const { registry, dispose } = await createRegistry()
     await registry.addSource({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })

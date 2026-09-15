@@ -37,6 +37,11 @@ function isAlreadyClosedError(error: unknown): boolean {
   return code === 'ERR_SQLITE_ERROR' || code === 'PROTOCOL_ENQUEUE_AFTER_QUIT' || code === 'PROTOCOL_CONNECTION_LOST'
 }
 
+/** Drop explicit `undefined`-valued keys, e.g. from an omitted optional input field — `undefined` isn't valid JSON. */
+function omitUndefined<T extends object>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T
+}
+
 /**
  * Registry of named external database connections (`ctx.dataAgent`).
  * `sources.json` is eager-loaded at construction; individual DB connections
@@ -83,7 +88,7 @@ export class DataSourceRegistry extends Service {
 
   async addSource(input: AddSourceInput): Promise<DataSourceRecord> {
     await this.guardReady()
-    const record: DataSourceRecord = { ...input, createdAt: new Date().toISOString() }
+    const record: DataSourceRecord = { ...omitUndefined(input), createdAt: new Date().toISOString() }
 
     const next = await mutateSources((current) => {
       if (current.some(existing => existing.name === input.name)) {
