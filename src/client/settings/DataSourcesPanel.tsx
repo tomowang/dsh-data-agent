@@ -180,6 +180,8 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
     setTesting(true)
     try {
       setTestResult(await api.testConnection(source.name))
+    } catch (err) {
+      setTestResult({ ok: false, error: { code: 'request_failed', message: (err as Error).message } })
     } finally {
       setTesting(false)
     }
