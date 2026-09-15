@@ -22,11 +22,12 @@ const CSS = `
 .dsh-da-empty { margin: 0; padding: 20px; border: 1px dashed var(--dsw-alias-border-l3); border-radius: 12px; text-align: center; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
 
 .dsh-da-rowCard { border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-.dsh-da-rowHead { display: flex; align-items: center; gap: 10px; }
+.dsh-da-rowHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .dsh-da-rowIdentity { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
 .dsh-da-rowName { font-size: 14px; line-height: 22px; font-weight: 500; color: var(--dsw-alias-label-primary); font-family: var(--ds-font-family-code); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsh-da-rowMeta { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dsh-da-rowActions { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
+.dsh-da-rowToolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 0.5px solid var(--dsw-alias-border-l2); }
+.dsh-da-rowActions { display: inline-flex; align-items: center; gap: 4px; flex: none; }
 
 .dsh-da-secondaryButton, .dsh-da-dangerButton {
   box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
@@ -39,7 +40,8 @@ const CSS = `
 .dsh-da-secondaryButton:disabled, .dsh-da-dangerButton:disabled { opacity: 0.4; cursor: default; }
 
 /* Row-action controls take the dense capsule size. */
-.dsh-da-rowActions .dsh-da-secondaryButton, .dsh-da-rowActions .dsh-da-dangerButton {
+.dsh-da-rowActions .dsh-da-secondaryButton, .dsh-da-rowActions .dsh-da-dangerButton,
+.dsh-da-rowHead .dsh-da-dangerButton {
   height: 28px; padding: 0 10px; border-radius: 14px; font-size: 12px; line-height: 18px;
 }
 

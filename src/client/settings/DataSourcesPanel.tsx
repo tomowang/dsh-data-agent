@@ -252,16 +252,23 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
           <Tag tone="neutral">{source.engine}</Tag>
           {!source.readOnly && <Tag tone="warning">read-write</Tag>}
         </span>
+        <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
+          <IconTrashOutline16 size={14} />
+          Remove
+        </button>
+      </div>
+      <div className="dsh-da-rowMeta">{location}</div>
+      <div className="dsh-da-rowToolbar">
+        <label className="dsh-da-switchRow">
+          <Switch
+            checked={source.readOnly}
+            onChange={value => void api.setReadOnly(source.name, value).then(onChanged)}
+            label={`Read-only for ${source.name}`}
+            title="Read-only"
+          />
+          <span className="dsh-da-switchLabel">Read-only</span>
+        </label>
         <span className="dsh-da-rowActions">
-          <label className="dsh-da-switchRow">
-            <Switch
-              checked={source.readOnly}
-              onChange={value => void api.setReadOnly(source.name, value).then(onChanged)}
-              label={`Read-only for ${source.name}`}
-              title="Read-only"
-            />
-            <span className="dsh-da-switchLabel">Read-only</span>
-          </label>
           <button type="button" className="dsh-da-secondaryButton" disabled={testing} onClick={() => void test()}>
             <IconRefreshOutline16 size={14} />
             {testing ? 'Testing…' : 'Test'}
@@ -270,13 +277,8 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
             <IconDatabaseOutline16 size={14} />
             {schemaOpen ? 'Hide schema' : 'View schema'}
           </button>
-          <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
-            <IconTrashOutline16 size={14} />
-            Remove
-          </button>
         </span>
       </div>
-      <div className="dsh-da-rowMeta">{location}</div>
       {testResult !== undefined && connectionStatusLine(testResult)}
       {schemaOpen && (
         <div className="dsh-da-schemaSection">
