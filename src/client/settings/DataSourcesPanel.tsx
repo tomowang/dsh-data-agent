@@ -9,34 +9,65 @@ import {
   Switch,
   Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { ConnectionTestResult, DataSourceRecord, SchemaResult } from '../../data-source/types.ts'
+import type { ConnectionTestResult, DataSourceRecord, Engine, SchemaResult } from '../../data-source/types.ts'
 import { ensureDshStyles } from '../shared/dsh-styles.ts'
 import { SchemaTree } from '../shared/SchemaTree.tsx'
 import * as api from './api.ts'
+import {
+  buildAddSourceInput,
+  defaultFieldValues,
+  ENGINE_FORM_SCHEMAS,
+  ENGINE_ORDER,
+  type FieldSpec,
+  type FieldValues,
+  visibleFields,
+} from './data-source-form-schema.ts'
 
 ensureDshStyles()
 
-type Engine = 'mysql' | 'postgres' | 'sqlite'
-type SslMode = 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
-
-const emptyForm = {
-  name: '',
-  engine: 'sqlite' as Engine,
-  host: '',
-  port: '',
-  database: '',
-  user: '',
-  passwordEnv: '',
-  ssl: false,
-  sslmode: 'disable' as SslMode,
-  sslrootcert: '',
-  readOnly: true,
-  description: '',
+function FormField({ field, value, onChange }: {
+  field: FieldSpec
+  value: string | boolean | undefined
+  onChange: (value: string | boolean) => void
+}): React.ReactElement {
+  if (field.type === 'switch') {
+    return (
+      <label className="dsh-da-switchRow">
+        <Switch checked={value === true} onChange={onChange} label={field.label} />
+        <span className="dsh-da-switchLabel">{field.label}</span>
+      </label>
+    )
+  }
+  if (field.type === 'select') {
+    return (
+      <label className="dsh-da-field">
+        <span className="dsh-da-fieldLabel">{field.label}</span>
+        <select className="dsh-da-selectInput" value={String(value ?? '')} onChange={e => onChange(e.target.value)}>
+          {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+    )
+  }
+  return (
+    <label className="dsh-da-field">
+      <span className="dsh-da-fieldLabel">{field.label}</span>
+      <Input
+        placeholder={field.placeholder}
+        value={String(value ?? '')}
+        onChange={e => onChange(e.target.value)}
+        required={field.required}
+      />
+    </label>
+  )
 }
 
 function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement {
-  const [form, setForm] = React.useState(emptyForm)
   const [open, setOpen] = React.useState(false)
+  const [name, setName] = React.useState('')
+  const [engine, setEngine] = React.useState<Engine>('sqlite')
+  const [values, setValues] = React.useState<FieldValues>(() => defaultFieldValues('sqlite'))
+  const [readOnly, setReadOnly] = React.useState(true)
+  const [description, setDescription] = React.useState('')
   const [error, setError] = React.useState<string | undefined>(undefined)
   const [saving, setSaving] = React.useState(false)
 
@@ -49,28 +80,24 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
     )
   }
 
-  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]): void => setForm(f => ({ ...f, [key]: value }))
+  const changeEngine = (next: Engine): void => {
+    setEngine(next)
+    setValues(defaultFieldValues(next))
+  }
+
+  const setField = (key: string, value: string | boolean): void => setValues(v => ({ ...v, [key]: value }))
 
   const submit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault()
     setSaving(true)
     setError(undefined)
     try {
-      await api.addSource({
-        name: form.name,
-        engine: form.engine,
-        database: form.database,
-        host: form.host.length > 0 ? form.host : undefined,
-        port: form.port.length > 0 ? Number(form.port) : undefined,
-        user: form.user.length > 0 ? form.user : undefined,
-        passwordEnv: form.passwordEnv.length > 0 ? form.passwordEnv : undefined,
-        ssl: form.engine === 'mysql' ? form.ssl : undefined,
-        sslmode: form.engine === 'postgres' ? form.sslmode : undefined,
-        sslrootcert: form.engine === 'postgres' && form.sslrootcert.length > 0 ? form.sslrootcert : undefined,
-        readOnly: form.readOnly,
-        description: form.description.length > 0 ? form.description : undefined,
-      })
-      setForm(emptyForm)
+      await api.addSource(buildAddSourceInput(engine, name, readOnly, description, values))
+      setName('')
+      setEngine('sqlite')
+      setValues(defaultFieldValues('sqlite'))
+      setReadOnly(true)
+      setDescription('')
       setOpen(false)
       onAdded()
     } catch (err) {
@@ -80,92 +107,36 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
     }
   }
 
-  const isSqlite = form.engine === 'sqlite'
+  const fields = visibleFields(engine, values)
+  const textFields = fields.filter(field => field.type !== 'switch')
+  const switchFields = fields.filter(field => field.type === 'switch')
 
   return (
     <form className="dsh-da-editor" onSubmit={event => void submit(event)}>
       <p className="dsh-da-editorTitle">New data source</p>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">Name</span>
-          <Input placeholder="e.g. prod-mysql" value={form.name} onChange={e => set('name', e.target.value)} required />
-        </label>
-        <label className="dsh-da-field">
           <span className="dsh-da-fieldLabel">Engine</span>
-          <select
-            className="dsh-da-selectInput"
-            value={form.engine}
-            onChange={e => set('engine', e.target.value as Engine)}
-          >
-            <option value="sqlite">sqlite</option>
-            <option value="mysql">mysql</option>
-            <option value="postgres">postgres</option>
+          <select className="dsh-da-selectInput" value={engine} onChange={e => changeEngine(e.target.value as Engine)}>
+            {ENGINE_ORDER.map(value => <option key={value} value={value}>{ENGINE_FORM_SCHEMAS[value].label}</option>)}
           </select>
         </label>
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">{isSqlite ? 'File path' : 'Database'}</span>
-          <Input
-            placeholder={isSqlite ? '/path/to/file.db' : 'database name'}
-            value={form.database}
-            onChange={e => set('database', e.target.value)}
-            required
-          />
+          <span className="dsh-da-fieldLabel">Name</span>
+          <Input placeholder="e.g. prod-mysql" value={name} onChange={e => setName(e.target.value)} required />
         </label>
-        {!isSqlite && (
-          <>
-            <label className="dsh-da-field">
-              <span className="dsh-da-fieldLabel">Host</span>
-              <Input placeholder="host" value={form.host} onChange={e => set('host', e.target.value)} />
-            </label>
-            <label className="dsh-da-field">
-              <span className="dsh-da-fieldLabel">Port</span>
-              <Input placeholder="port" value={form.port} onChange={e => set('port', e.target.value)} />
-            </label>
-            <label className="dsh-da-field">
-              <span className="dsh-da-fieldLabel">User</span>
-              <Input placeholder="user" value={form.user} onChange={e => set('user', e.target.value)} />
-            </label>
-            <label className="dsh-da-field">
-              <span className="dsh-da-fieldLabel">Password env var</span>
-              <Input placeholder="e.g. PROD_DB_PASSWORD" value={form.passwordEnv} onChange={e => set('passwordEnv', e.target.value)} />
-            </label>
-          </>
-        )}
-        {form.engine === 'postgres' && (
-          <label className="dsh-da-field">
-            <span className="dsh-da-fieldLabel">SSL mode</span>
-            <select
-              className="dsh-da-selectInput"
-              value={form.sslmode}
-              onChange={e => set('sslmode', e.target.value as SslMode)}
-            >
-              <option value="disable">disable</option>
-              <option value="allow">allow</option>
-              <option value="prefer">prefer</option>
-              <option value="require">require</option>
-              <option value="verify-ca">verify-ca</option>
-              <option value="verify-full">verify-full</option>
-            </select>
-          </label>
-        )}
-        {form.engine === 'postgres' && (form.sslmode === 'verify-ca' || form.sslmode === 'verify-full') && (
-          <label className="dsh-da-field">
-            <span className="dsh-da-fieldLabel">CA certificate path</span>
-            <Input placeholder="/path/to/ca.pem" value={form.sslrootcert} onChange={e => set('sslrootcert', e.target.value)} />
-          </label>
-        )}
+        {textFields.map(field => (
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+        ))}
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
-          <Switch checked={form.readOnly} onChange={value => set('readOnly', value)} label="Read-only" />
+          <Switch checked={readOnly} onChange={setReadOnly} label="Read-only" />
           <span className="dsh-da-switchLabel">Read-only</span>
         </label>
-        {form.engine === 'mysql' && (
-          <label className="dsh-da-switchRow">
-            <Switch checked={form.ssl} onChange={value => set('ssl', value)} label="Use SSL" />
-            <span className="dsh-da-switchLabel">SSL</span>
-          </label>
-        )}
+        {switchFields.map(field => (
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+        ))}
       </div>
       {error !== undefined && <p className="dsh-da-error">{error}</p>}
       <div className="dsh-da-editorActions">
