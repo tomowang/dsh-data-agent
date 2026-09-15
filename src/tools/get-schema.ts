@@ -15,9 +15,9 @@ export function applyGetSchemaTool(ctx: Context): void {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['sourceId'],
+      required: ['sourceName'],
       properties: {
-        sourceId: { type: 'string' },
+        sourceName: { type: 'string' },
         table: { type: 'string', description: 'Given, returns full column detail for this one table.' },
         schemaName: { type: 'string', description: 'PostgreSQL schema or MySQL database namespace override.' },
       },
@@ -25,9 +25,9 @@ export function applyGetSchemaTool(ctx: Context): void {
     output: {
       schema: {
         type: 'object',
-        required: ['sourceId', 'engine', 'scope', 'tables', 'truncated'],
+        required: ['sourceName', 'engine', 'scope', 'tables', 'truncated'],
         properties: {
-          sourceId: { type: 'string' },
+          sourceName: { type: 'string' },
           engine: { type: 'string' },
           scope: { type: 'string', enum: ['database', 'table'] },
           truncated: { type: 'boolean' },
@@ -65,7 +65,7 @@ export function applyGetSchemaTool(ctx: Context): void {
       },
       render(_args, value) {
         const schema = value as SchemaResult
-        const lines: string[] = [`### ${schema.sourceId} (${schema.engine})`]
+        const lines: string[] = [`### ${schema.sourceName} (${schema.engine})`]
         for (const table of schema.tables) {
           const suffix = table.comment !== undefined ? ` — ${table.comment}` : ''
           lines.push(`\n**${table.name}**${suffix} (${table.columnCount} columns)`)
@@ -90,13 +90,13 @@ export function applyGetSchemaTool(ctx: Context): void {
     },
     async execute(rawArgs): Promise<SchemaResult> {
       const args = asRecord(rawArgs, NAME)
-      const sourceId = requireString(args, 'sourceId', NAME)
+      const sourceName = requireString(args, 'sourceName', NAME)
       const table = optionalString(args, 'table', NAME)
       const schemaName = optionalString(args, 'schemaName', NAME)
 
-      const adapter = await ctx.dataAgent.getAdapter(sourceId)
+      const adapter = await ctx.dataAgent.getAdapter(sourceName)
       const schema = await adapter.getSchema({ table, schemaName })
-      const comments = await getSourceComments(sourceId)
+      const comments = await getSourceComments(sourceName)
       return mergeSchemaComments(schema, comments)
     },
   })

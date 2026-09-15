@@ -20,11 +20,11 @@ afterEach(async () => {
   await rm(dshHome, { recursive: true, force: true })
 })
 
-function record(id: string): DataSourceRecord {
+function record(name: string): DataSourceRecord {
   return {
-    id,
+    name,
     engine: 'sqlite',
-    database: `/tmp/${id}.db`,
+    database: `/tmp/${name}.db`,
     readOnly: true,
     createdAt: '2026-01-01T00:00:00.000Z',
   }
@@ -55,12 +55,12 @@ describe('sources-store', () => {
       mutateSources(current => ({ next: [...current, record('a')], result: undefined })),
       mutateSources(current => ({ next: [...current, record('b')], result: undefined })),
     ])
-    const ids = (await readSources()).map(r => r.id).sort()
-    expect(ids).toEqual(['a', 'b'])
+    const names = (await readSources()).map(r => r.name).sort()
+    expect(names).toEqual(['a', 'b'])
   })
 
   it('returns a result from the mutator alongside persisting the next state', async () => {
     const result = await mutateSources(current => ({ next: [...current, record('a')], result: record('a') }))
-    expect(result.id).toBe('a')
+    expect(result.name).toBe('a')
   })
 })

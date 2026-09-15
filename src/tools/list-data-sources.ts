@@ -18,9 +18,9 @@ export function applyListDataSourcesTool(ctx: Context): void {
             type: 'array',
             items: {
               type: 'object',
-              required: ['id', 'engine', 'database', 'readOnly', 'createdAt'],
+              required: ['name', 'engine', 'database', 'readOnly', 'createdAt'],
               properties: {
-                id: { type: 'string' },
+                name: { type: 'string' },
                 engine: { type: 'string' },
                 host: { type: 'string' },
                 port: { type: 'number' },
@@ -42,12 +42,12 @@ export function applyListDataSourcesTool(ctx: Context): void {
         const { sources } = value as { sources: DataSourceRecord[] }
         if (sources.length === 0) return [{ type: 'text', text: 'No data sources registered yet.' }]
         const rows = sources.map(source => ({
-          id: source.id,
+          name: source.name,
           engine: source.engine,
           location: source.engine === 'sqlite' ? source.database : `${source.host ?? ''}/${source.database}`,
           readOnly: source.readOnly,
         }))
-        const text = renderMarkdownTable(['id', 'engine', 'location', 'readOnly'], rows, {
+        const text = renderMarkdownTable(['name', 'engine', 'location', 'readOnly'], rows, {
           limit: rows.length,
           totalRowCount: rows.length,
         })

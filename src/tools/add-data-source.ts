@@ -31,9 +31,9 @@ export function applyAddDataSourceTool(ctx: Context): void {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'engine', 'database'],
+      required: ['name', 'engine', 'database'],
       properties: {
-        id: { type: 'string', description: 'A short unique name for this data source, e.g. "prod-mysql".' },
+        name: { type: 'string', description: 'A short unique name for this data source, e.g. "prod-mysql".' },
         engine: { type: 'string', enum: [...ENGINES], description: 'One of: mysql, postgres, sqlite.' },
         host: { type: 'string', description: 'MySQL/PostgreSQL only.' },
         port: { type: 'number', description: 'MySQL/PostgreSQL only.' },
@@ -57,9 +57,9 @@ export function applyAddDataSourceTool(ctx: Context): void {
     output: {
       schema: {
         type: 'object',
-        required: ['id', 'engine', 'database', 'readOnly', 'createdAt'],
+        required: ['name', 'engine', 'database', 'readOnly', 'createdAt'],
         properties: {
-          id: { type: 'string' },
+          name: { type: 'string' },
           engine: { type: 'string' },
           host: { type: 'string' },
           port: { type: 'number' },
@@ -75,21 +75,21 @@ export function applyAddDataSourceTool(ctx: Context): void {
         },
       },
       render(_args, value) {
-        const record = value as { id: string, engine: string, readOnly: boolean }
+        const record = value as { name: string, engine: string, readOnly: boolean }
         return [{
           type: 'text',
-          text: `Added data source \`${record.id}\` (${record.engine}, ${record.readOnly ? 'read-only' : 'read-write'}).`,
+          text: `Added data source \`${record.name}\` (${record.engine}, ${record.readOnly ? 'read-only' : 'read-write'}).`,
         }]
       },
     },
     async execute(rawArgs) {
       const args = asRecord(rawArgs, NAME)
-      const id = requireString(args, 'id', NAME)
+      const name = requireString(args, 'name', NAME)
       const engine = requireEnum(args, 'engine', ENGINES, NAME)
       const database = requireString(args, 'database', NAME)
 
       const record = await ctx.dataAgent.addSource({
-        id,
+        name,
         engine,
         database,
         host: optionalString(args, 'host', NAME),

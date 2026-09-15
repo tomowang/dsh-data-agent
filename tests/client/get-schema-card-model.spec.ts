@@ -27,12 +27,12 @@ describe('getSchemaCardModel', () => {
   })
 
   it('returns null when meta is structurally malformed', () => {
-    expect(getSchemaCardModel(settled({ meta: { sourceId: 'x' } }))).toBeNull()
+    expect(getSchemaCardModel(settled({ meta: { sourceName: 'x' } }))).toBeNull()
   })
 
   it('parses a well-formed database-scope schema', () => {
     const meta = {
-      sourceId: 'sample',
+      sourceName: 'sample',
       engine: 'sqlite',
       scope: 'database',
       truncated: false,
@@ -43,7 +43,7 @@ describe('getSchemaCardModel', () => {
 
   it('parses a well-formed table-scope schema with columns', () => {
     const meta = {
-      sourceId: 'sample',
+      sourceName: 'sample',
       engine: 'sqlite',
       scope: 'table',
       truncated: false,
@@ -58,7 +58,7 @@ describe('getSchemaCardModel', () => {
 
   it('rejects a table entry with a malformed column', () => {
     const meta = {
-      sourceId: 'sample',
+      sourceName: 'sample',
       engine: 'sqlite',
       scope: 'table',
       truncated: false,

@@ -13,9 +13,9 @@ export function applySetCommentTool(ctx: Context): void {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['sourceId', 'table', 'comment'],
+      required: ['sourceName', 'table', 'comment'],
       properties: {
-        sourceId: { type: 'string' },
+        sourceName: { type: 'string' },
         table: { type: 'string' },
         column: { type: 'string', description: 'Omit for a table-level comment.' },
         comment: { type: 'string', description: 'Pass an empty string to clear the comment.' },
@@ -24,26 +24,26 @@ export function applySetCommentTool(ctx: Context): void {
     output: {
       schema: {
         type: 'object',
-        required: ['sourceId', 'table', 'comment'],
+        required: ['sourceName', 'table', 'comment'],
         properties: {
-          sourceId: { type: 'string' },
+          sourceName: { type: 'string' },
           table: { type: 'string' },
           column: { type: 'string' },
           comment: { type: 'string' },
         },
       },
       render(_args, value) {
-        const result = value as { sourceId: string, table: string, column?: string, comment: string | null }
+        const result = value as { sourceName: string, table: string, column?: string, comment: string | null }
         const target = result.column !== undefined ? `${result.table}.${result.column}` : result.table
         const text = result.comment === null
-          ? `Cleared comment on \`${result.sourceId}\`.\`${target}\`.`
-          : `Set comment on \`${result.sourceId}\`.\`${target}\` to: "${result.comment}"`
+          ? `Cleared comment on \`${result.sourceName}\`.\`${target}\`.`
+          : `Set comment on \`${result.sourceName}\`.\`${target}\` to: "${result.comment}"`
         return [{ type: 'text', text }]
       },
     },
     async execute(rawArgs) {
       const args = asRecord(rawArgs, NAME)
-      const sourceId = requireString(args, 'sourceId', NAME)
+      const sourceName = requireString(args, 'sourceName', NAME)
       const table = requireString(args, 'table', NAME)
       const column = optionalString(args, 'column', NAME)
       const rawComment = args.comment
@@ -51,11 +51,11 @@ export function applySetCommentTool(ctx: Context): void {
       const comment = rawComment.length === 0 ? null : rawComment
 
       // Confirm the source is registered before persisting a comment for it.
-      const record = await ctx.dataAgent.get(sourceId)
-      if (record === undefined) throw new Error(`${NAME}: no data source named "${sourceId}"`)
+      const record = await ctx.dataAgent.get(sourceName)
+      if (record === undefined) throw new Error(`${NAME}: no data source named "${sourceName}"`)
 
-      await setComment(sourceId, table, column, comment)
-      return { sourceId, table, column, comment }
+      await setComment(sourceName, table, column, comment)
+      return { sourceName, table, column, comment }
     },
   })
 }

@@ -61,7 +61,7 @@ export class MysqlAdapter implements DataSourceAdapter {
       this.poolInstance = pool
     } catch (error) {
       throw new DataAgentError(
-        `Failed to connect to MySQL data source "${this.record.id}": ${(error as Error).message}`,
+        `Failed to connect to MySQL data source "${this.record.name}": ${(error as Error).message}`,
         CONNECTION_FAILED_CODE,
         { cause: error },
       )
@@ -94,7 +94,7 @@ export class MysqlAdapter implements DataSourceAdapter {
       }
       const tableRow = tableRows[0] as unknown as TableRow
       return {
-        sourceId: this.record.id,
+        sourceName: this.record.name,
         engine: 'mysql',
         scope: 'table',
         truncated: false,
@@ -123,7 +123,7 @@ export class MysqlAdapter implements DataSourceAdapter {
       columnCount: columnCounts.get(row.TABLE_NAME) ?? 0,
     }))
 
-    return { sourceId: this.record.id, engine: 'mysql', scope: 'database', tables, truncated }
+    return { sourceName: this.record.name, engine: 'mysql', scope: 'database', tables, truncated }
   }
 
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {

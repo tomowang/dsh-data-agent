@@ -20,7 +20,7 @@ type Engine = 'mysql' | 'postgres' | 'sqlite'
 type SslMode = 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
 
 const emptyForm = {
-  id: '',
+  name: '',
   engine: 'sqlite' as Engine,
   host: '',
   port: '',
@@ -57,7 +57,7 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
     setError(undefined)
     try {
       await api.addSource({
-        id: form.id,
+        name: form.name,
         engine: form.engine,
         database: form.database,
         host: form.host.length > 0 ? form.host : undefined,
@@ -87,8 +87,8 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
       <p className="dsh-da-editorTitle">New data source</p>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">Id</span>
-          <Input placeholder="e.g. prod-mysql" value={form.id} onChange={e => set('id', e.target.value)} required />
+          <span className="dsh-da-fieldLabel">Name</span>
+          <Input placeholder="e.g. prod-mysql" value={form.name} onChange={e => set('name', e.target.value)} required />
         </label>
         <label className="dsh-da-field">
           <span className="dsh-da-fieldLabel">Engine</span>
@@ -208,7 +208,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
   const test = async (): Promise<void> => {
     setTesting(true)
     try {
-      setTestResult(await api.testConnection(source.id))
+      setTestResult(await api.testConnection(source.name))
     } finally {
       setTesting(false)
     }
@@ -222,7 +222,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
     setSchemaOpen(true)
     setSchemaError(undefined)
     try {
-      setSchema(await api.getSchema(source.id))
+      setSchema(await api.getSchema(source.name))
     } catch (err) {
       setSchemaError((err as Error).message)
     }
@@ -236,7 +236,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
   const expandTable = async (table: string): Promise<void> => {
     setLoadingTables(prev => new Set(prev).add(table))
     try {
-      const detail = await api.getSchema(source.id, table)
+      const detail = await api.getSchema(source.name, table)
       const expandedTable = detail.tables[0]
       if (expandedTable === undefined) return
       setSchema(prev => prev === undefined
@@ -255,7 +255,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
   // lazily-expanded table's column detail isn't discarded by reverting to a
   // fresh database-scope result.
   const saveComment = async (table: string, column: string | undefined, comment: string | null): Promise<void> => {
-    await api.setComment(source.id, table, column, comment)
+    await api.setComment(source.name, table, column, comment)
     setSchema((prev) => {
       if (prev === undefined) return prev
       return {
@@ -275,7 +275,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
     <li className="dsh-da-rowCard">
       <div className="dsh-da-rowHead">
         <span className="dsh-da-rowIdentity">
-          <span className="dsh-da-rowName">{source.id}</span>
+          <span className="dsh-da-rowName">{source.name}</span>
           <Tag tone="neutral">{source.engine}</Tag>
           {!source.readOnly && <Tag tone="warning">read-write</Tag>}
         </span>
@@ -283,8 +283,8 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
           <label className="dsh-da-switchRow">
             <Switch
               checked={source.readOnly}
-              onChange={value => void api.setReadOnly(source.id, value).then(onChanged)}
-              label={`Read-only for ${source.id}`}
+              onChange={value => void api.setReadOnly(source.name, value).then(onChanged)}
+              label={`Read-only for ${source.name}`}
               title="Read-only"
             />
             <span className="dsh-da-switchLabel">Read-only</span>
@@ -297,7 +297,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
             <IconDatabaseOutline16 size={14} />
             {schemaOpen ? 'Hide schema' : 'View schema'}
           </button>
-          <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.id).then(onChanged)}>
+          <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
             <IconTrashOutline16 size={14} />
             Remove
           </button>
@@ -346,7 +346,7 @@ export function DataSourcesPanel(): React.ReactElement {
           ? <p className="dsh-da-loading">Loading…</p>
           : sources.length === 0
             ? <p className="dsh-da-empty">No data sources registered yet.</p>
-            : sources.map(source => <SourceRow key={source.id} source={source} onChanged={refresh} />)}
+            : sources.map(source => <SourceRow key={source.name} source={source} onChanged={refresh} />)}
       </ul>
       <AddSourceForm onAdded={refresh} />
     </div>

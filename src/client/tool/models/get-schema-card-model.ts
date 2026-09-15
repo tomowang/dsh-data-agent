@@ -34,7 +34,7 @@ export function getSchemaCardModel(block: ToolCallBlock): SchemaResult | null {
   const record = meta as Record<string, unknown>
 
   if (
-    typeof record.sourceId !== 'string'
+    typeof record.sourceName !== 'string'
     || typeof record.engine !== 'string'
     || (record.scope !== 'database' && record.scope !== 'table')
     || typeof record.truncated !== 'boolean'

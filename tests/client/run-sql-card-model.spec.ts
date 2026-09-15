@@ -24,7 +24,7 @@ describe('runSqlCardModel', () => {
 
   it('returns null when a row contains a non-scalar value', () => {
     const meta = {
-      sourceId: 'sample', sql: 'SELECT 1', rowCount: 1, truncated: false,
+      sourceName: 'sample', sql: 'SELECT 1', rowCount: 1, truncated: false,
       columns: [{ name: 'x' }], rows: [{ x: { nested: true } }],
     }
     expect(runSqlCardModel(settled({ meta }))).toBeNull()
@@ -32,7 +32,7 @@ describe('runSqlCardModel', () => {
 
   it('parses a well-formed result with no chart', () => {
     const meta = {
-      sourceId: 'sample', sql: 'SELECT 1 AS x', rowCount: 1, truncated: false,
+      sourceName: 'sample', sql: 'SELECT 1 AS x', rowCount: 1, truncated: false,
       columns: [{ name: 'x' }], rows: [{ x: 1 }],
     }
     expect(runSqlCardModel(settled({ meta }))).toEqual({ ...meta, chart: undefined })
@@ -40,7 +40,7 @@ describe('runSqlCardModel', () => {
 
   it('parses a well-formed result with a bar chart', () => {
     const meta = {
-      sourceId: 'sample', sql: 'SELECT status, COUNT(*) AS n FROM orders GROUP BY status',
+      sourceName: 'sample', sql: 'SELECT status, COUNT(*) AS n FROM orders GROUP BY status',
       rowCount: 2, truncated: false,
       columns: [{ name: 'status' }, { name: 'n' }],
       rows: [{ status: 'paid', n: 1 }, { status: 'pending', n: 1 }],
@@ -51,7 +51,7 @@ describe('runSqlCardModel', () => {
 
   it('drops an unrecognized chart type without failing the whole card', () => {
     const meta = {
-      sourceId: 'sample', sql: 'SELECT 1 AS x', rowCount: 1, truncated: false,
+      sourceName: 'sample', sql: 'SELECT 1 AS x', rowCount: 1, truncated: false,
       columns: [{ name: 'x' }], rows: [{ x: 1 }],
       chart: { type: 'scatter', x: 'x', y: 'x' },
     }

@@ -83,41 +83,41 @@ describe('settings-api routes', () => {
 
     const add = fakeRes()
     await routes.get('/dsh-data-agent/api/add-source')?.(
-      fakeReq({ id: 'sample', engine: 'sqlite', database: dbFile, readOnly: true }),
+      fakeReq({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true }),
       add.res,
     )
     expect(add.result.status).toBe(200)
-    expect((add.result.body as { id: string }).id).toBe('sample')
+    expect((add.result.body as { name: string }).name).toBe('sample')
 
     const list = fakeRes()
     await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}), list.res)
-    expect((list.result.body as { sources: { id: string }[] }).sources.map(s => s.id)).toEqual(['sample'])
+    expect((list.result.body as { sources: { name: string }[] }).sources.map(s => s.name)).toEqual(['sample'])
 
     const setComment = fakeRes()
     await routes.get('/dsh-data-agent/api/set-comment')?.(
-      fakeReq({ sourceId: 'sample', table: 'orders', comment: 'Customer orders' }),
+      fakeReq({ sourceName: 'sample', table: 'orders', comment: 'Customer orders' }),
       setComment.res,
     )
     expect(setComment.result.status).toBe(200)
 
     const schema = fakeRes()
-    await routes.get('/dsh-data-agent/api/get-schema')?.(fakeReq({ sourceId: 'sample' }), schema.res)
+    await routes.get('/dsh-data-agent/api/get-schema')?.(fakeReq({ sourceName: 'sample' }), schema.res)
     expect(schema.result.status).toBe(200)
     expect((schema.result.body as { tables: { name: string, comment?: string }[] }).tables).toEqual([
       { name: 'orders', comment: 'Customer orders', columnCount: 2 },
     ])
 
     const remove = fakeRes()
-    await routes.get('/dsh-data-agent/api/remove-source')?.(fakeReq({ id: 'sample' }), remove.res)
-    expect(remove.result.body).toEqual({ id: 'sample', found: true })
+    await routes.get('/dsh-data-agent/api/remove-source')?.(fakeReq({ name: 'sample' }), remove.res)
+    expect(remove.result.body).toEqual({ name: 'sample', found: true })
 
     await dispose()
   })
 
-  it('maps an unknown source id to a 404-shaped error, not a crash', async () => {
+  it('maps an unknown source name to a 404-shaped error, not a crash', async () => {
     const { routes, dispose } = await createTestContext()
     const { res, result } = fakeRes()
-    await routes.get('/dsh-data-agent/api/test-connection')?.(fakeReq({ id: 'missing' }), res)
+    await routes.get('/dsh-data-agent/api/test-connection')?.(fakeReq({ name: 'missing' }), res)
     expect(result.status).toBe(404)
     expect(result.body).toEqual({ error: expect.stringContaining('missing') })
     await dispose()

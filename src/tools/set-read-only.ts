@@ -12,27 +12,27 @@ export function applySetReadOnlyTool(ctx: Context): void {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'readOnly'],
-      properties: { id: { type: 'string' }, readOnly: { type: 'boolean' } },
+      required: ['name', 'readOnly'],
+      properties: { name: { type: 'string' }, readOnly: { type: 'boolean' } },
     },
     output: {
       schema: {
         type: 'object',
-        required: ['id', 'readOnly'],
-        properties: { id: { type: 'string' }, readOnly: { type: 'boolean' } },
+        required: ['name', 'readOnly'],
+        properties: { name: { type: 'string' }, readOnly: { type: 'boolean' } },
       },
       render(_args, value) {
-        const result = value as { id: string, readOnly: boolean }
-        return [{ type: 'text', text: `\`${result.id}\` is now ${result.readOnly ? 'read-only' : 'read-write'}.` }]
+        const result = value as { name: string, readOnly: boolean }
+        return [{ type: 'text', text: `\`${result.name}\` is now ${result.readOnly ? 'read-only' : 'read-write'}.` }]
       },
     },
     async execute(rawArgs) {
       const args = asRecord(rawArgs, NAME)
-      const id = requireString(args, 'id', NAME)
+      const name = requireString(args, 'name', NAME)
       const readOnly = args.readOnly
       if (typeof readOnly !== 'boolean') throw new Error(`${NAME}: "readOnly" is required and must be a boolean`)
-      const record = await ctx.dataAgent.setReadOnly(id, readOnly)
-      return { id: record.id, readOnly: record.readOnly }
+      const record = await ctx.dataAgent.setReadOnly(name, readOnly)
+      return { name: record.name, readOnly: record.readOnly }
     },
   })
 }

@@ -7,7 +7,7 @@ interface TableComments {
   columns?: Record<string, string>
 }
 
-/** `sourceId -> tableName -> { comment?, columns?: { columnName -> comment } }`. */
+/** `sourceName -> tableName -> { comment?, columns?: { columnName -> comment } }`. */
 type CommentsFile = Record<string, Record<string, TableComments>>
 
 function commentsPath(): string {
@@ -33,20 +33,20 @@ async function mutateComments(mutate: (current: CommentsFile) => CommentsFile): 
   })
 }
 
-export async function getTableComment(sourceId: string, table: string): Promise<string | undefined> {
+export async function getTableComment(sourceName: string, table: string): Promise<string | undefined> {
   const comments = await readComments()
-  return comments[sourceId]?.[table]?.comment
+  return comments[sourceName]?.[table]?.comment
 }
 
-export async function getColumnComment(sourceId: string, table: string, column: string): Promise<string | undefined> {
+export async function getColumnComment(sourceName: string, table: string, column: string): Promise<string | undefined> {
   const comments = await readComments()
-  return comments[sourceId]?.[table]?.columns?.[column]
+  return comments[sourceName]?.[table]?.columns?.[column]
 }
 
 /** All comments for one source, keyed by table then column — used by `get_schema` to merge in one read. */
-export async function getSourceComments(sourceId: string): Promise<Record<string, TableComments>> {
+export async function getSourceComments(sourceName: string): Promise<Record<string, TableComments>> {
   const comments = await readComments()
-  return comments[sourceId] ?? {}
+  return comments[sourceName] ?? {}
 }
 
 /**
@@ -55,14 +55,14 @@ export async function getSourceComments(sourceId: string): Promise<Record<string
  * (an untouched source round-trips to `{}`, not a tree of empty objects).
  */
 export async function setComment(
-  sourceId: string,
+  sourceName: string,
   table: string,
   column: string | undefined,
   comment: string | null,
 ): Promise<void> {
   await mutateComments((current) => {
     const next: CommentsFile = { ...current }
-    const sourceEntry = { ...(next[sourceId] ?? {}) }
+    const sourceEntry = { ...(next[sourceName] ?? {}) }
     const tableEntry: TableComments = { ...(sourceEntry[table] ?? {}) }
 
     if (column === undefined) {
@@ -79,18 +79,18 @@ export async function setComment(
     if (Object.keys(tableEntry).length > 0) sourceEntry[table] = tableEntry
     else delete sourceEntry[table]
 
-    if (Object.keys(sourceEntry).length > 0) next[sourceId] = sourceEntry
-    else delete next[sourceId]
+    if (Object.keys(sourceEntry).length > 0) next[sourceName] = sourceEntry
+    else delete next[sourceName]
 
     return next
   })
 }
 
 /** Remove every comment for a source (called when the source itself is removed). */
-export async function clearSourceComments(sourceId: string): Promise<void> {
+export async function clearSourceComments(sourceName: string): Promise<void> {
   await mutateComments((current) => {
     const next = { ...current }
-    delete next[sourceId]
+    delete next[sourceName]
     return next
   })
 }

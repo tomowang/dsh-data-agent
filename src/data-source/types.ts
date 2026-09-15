@@ -7,7 +7,7 @@ export type Engine = 'mysql' | 'postgres' | 'sqlite'
  * connect time (see `credential.ts`).
  */
 export interface DataSourceRecord {
-  readonly id: string
+  readonly name: string
   readonly engine: Engine
   /** MySQL/PostgreSQL only. */
   readonly host?: string
@@ -65,7 +65,7 @@ export interface TableInfo {
 }
 
 export interface SchemaResult {
-  readonly sourceId: string
+  readonly sourceName: string
   readonly engine: Engine
   readonly scope: 'database' | 'table'
   readonly tables: readonly TableInfo[]

@@ -23,7 +23,7 @@ export function listSources(): Promise<{ sources: DataSourceRecord[] }> {
 }
 
 export interface AddSourceInput {
-  id: string
+  name: string
   engine: 'mysql' | 'postgres' | 'sqlite'
   database: string
   host?: string
@@ -41,22 +41,22 @@ export function addSource(input: AddSourceInput): Promise<DataSourceRecord> {
   return call('add-source', input)
 }
 
-export function removeSource(id: string): Promise<{ id: string, found: boolean }> {
-  return call('remove-source', { id })
+export function removeSource(name: string): Promise<{ name: string, found: boolean }> {
+  return call('remove-source', { name })
 }
 
-export function testConnection(id: string): Promise<ConnectionTestResult> {
-  return call('test-connection', { id })
+export function testConnection(name: string): Promise<ConnectionTestResult> {
+  return call('test-connection', { name })
 }
 
-export function setReadOnly(id: string, readOnly: boolean): Promise<DataSourceRecord> {
-  return call('set-read-only', { id, readOnly })
+export function setReadOnly(name: string, readOnly: boolean): Promise<DataSourceRecord> {
+  return call('set-read-only', { name, readOnly })
 }
 
-export function getSchema(sourceId: string, table?: string): Promise<SchemaResult> {
-  return call('get-schema', { sourceId, table })
+export function getSchema(sourceName: string, table?: string): Promise<SchemaResult> {
+  return call('get-schema', { sourceName, table })
 }
 
-export function setComment(sourceId: string, table: string, column: string | undefined, comment: string | null): Promise<void> {
-  return call('set-comment', { sourceId, table, column, comment: comment ?? '' })
+export function setComment(sourceName: string, table: string, column: string | undefined, comment: string | null): Promise<void> {
+  return call('set-comment', { sourceName, table, column, comment: comment ?? '' })
 }

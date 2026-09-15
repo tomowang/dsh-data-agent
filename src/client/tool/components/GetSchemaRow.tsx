@@ -15,7 +15,7 @@ export function GetSchemaRow({ block }: ToolRowProps): React.ReactElement {
   }
   return (
     <div>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>{schema.sourceId} ({schema.engine})</div>
+      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>{schema.sourceName} ({schema.engine})</div>
       <SchemaTree schema={schema} />
     </div>
   )

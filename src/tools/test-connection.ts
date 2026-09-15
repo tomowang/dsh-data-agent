@@ -12,8 +12,8 @@ export function applyTestConnectionTool(ctx: Context): void {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['id'],
-      properties: { id: { type: 'string' } },
+      required: ['name'],
+      properties: { name: { type: 'string' } },
     },
     output: {
       schema: {
@@ -39,9 +39,9 @@ export function applyTestConnectionTool(ctx: Context): void {
     },
     async execute(rawArgs): Promise<ConnectionTestResult> {
       const args = asRecord(rawArgs, NAME)
-      const id = requireString(args, 'id', NAME)
+      const name = requireString(args, 'name', NAME)
       try {
-        const adapter = await ctx.dataAgent.getAdapter(id)
+        const adapter = await ctx.dataAgent.getAdapter(name)
         return await adapter.testConnection()
       } catch (error) {
         // Opening the connection is itself part of "testing" it: a source

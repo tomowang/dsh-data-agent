@@ -77,7 +77,7 @@ export class SqliteAdapter implements DataSourceAdapter {
         throw new DataAgentError(`Table "${options.table}" was not found`, TABLE_NOT_FOUND_CODE)
       }
       return {
-        sourceId: this.record.id,
+        sourceName: this.record.name,
         engine: 'sqlite',
         scope: 'table',
         truncated: false,
@@ -94,7 +94,7 @@ export class SqliteAdapter implements DataSourceAdapter {
       return { name: row.name, columnCount }
     })
 
-    return { sourceId: this.record.id, engine: 'sqlite', scope: 'database', tables, truncated }
+    return { sourceName: this.record.name, engine: 'sqlite', scope: 'database', tables, truncated }
   }
 
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {

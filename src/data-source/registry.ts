@@ -17,7 +17,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 export interface AddSourceInput {
-  readonly id: string
+  readonly name: string
   readonly engine: DataSourceRecord['engine']
   readonly host?: string
   readonly port?: number
@@ -40,7 +40,7 @@ function isAlreadyClosedError(error: unknown): boolean {
 /**
  * Registry of named external database connections (`ctx.dataAgent`).
  * `sources.json` is eager-loaded at construction; individual DB connections
- * are opened lazily per source id — one unreachable legacy DB never blocks
+ * are opened lazily per source name — one unreachable legacy DB never blocks
  * plugin startup, unlike E2B's single eagerly-opened sandbox. Every mutation
  * validates against the freshly-persisted state before committing, so the
  * in-memory map and sources.json never disagree.
@@ -76,9 +76,9 @@ export class DataSourceRegistry extends Service {
     return [...this.records.values()]
   }
 
-  async get(id: string): Promise<DataSourceRecord | undefined> {
+  async get(name: string): Promise<DataSourceRecord | undefined> {
     await this.guardReady()
-    return this.records.get(id)
+    return this.records.get(name)
   }
 
   async addSource(input: AddSourceInput): Promise<DataSourceRecord> {
@@ -86,27 +86,27 @@ export class DataSourceRegistry extends Service {
     const record: DataSourceRecord = { ...input, createdAt: new Date().toISOString() }
 
     const next = await mutateSources((current) => {
-      if (current.some(existing => existing.id === input.id)) {
-        throw new DataAgentError(`A data source named "${input.id}" already exists`, DUPLICATE_SOURCE_CODE)
+      if (current.some(existing => existing.name === input.name)) {
+        throw new DataAgentError(`A data source named "${input.name}" already exists`, DUPLICATE_SOURCE_CODE)
       }
       return { next: [...current, record], result: record }
     })
 
-    this.records.set(next.id, next)
+    this.records.set(next.name, next)
     return next
   }
 
-  /** Idempotent: removing an unknown id returns `found: false` rather than throwing. */
-  async removeSource(id: string): Promise<{ id: string, found: boolean }> {
+  /** Idempotent: removing an unknown name returns `found: false` rather than throwing. */
+  async removeSource(name: string): Promise<{ name: string, found: boolean }> {
     await this.guardReady()
     const found = await mutateSources((current) => {
-      const exists = current.some(existing => existing.id === id)
-      return { next: exists ? current.filter(existing => existing.id !== id) : current, result: exists }
+      const exists = current.some(existing => existing.name === name)
+      return { next: exists ? current.filter(existing => existing.name !== name) : current, result: exists }
     })
 
-    this.records.delete(id)
-    const liveAdapter = this.live.get(id)
-    this.live.delete(id)
+    this.records.delete(name)
+    const liveAdapter = this.live.get(name)
+    this.live.delete(name)
     if (liveAdapter !== undefined) {
       try {
         await (await liveAdapter).close()
@@ -114,29 +114,29 @@ export class DataSourceRegistry extends Service {
         if (!isAlreadyClosedError(error)) throw error
       }
     }
-    await clearSourceComments(id)
+    await clearSourceComments(name)
 
-    return { id, found }
+    return { name, found }
   }
 
-  async setReadOnly(id: string, readOnly: boolean): Promise<DataSourceRecord> {
+  async setReadOnly(name: string, readOnly: boolean): Promise<DataSourceRecord> {
     await this.guardReady()
     const next = await mutateSources((current) => {
-      const index = current.findIndex(existing => existing.id === id)
-      if (index === -1) throw new DataAgentError(`No data source named "${id}"`, SOURCE_NOT_FOUND_CODE)
+      const index = current.findIndex(existing => existing.name === name)
+      if (index === -1) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)
       const existing = current[index]
-      if (existing === undefined) throw new DataAgentError(`No data source named "${id}"`, SOURCE_NOT_FOUND_CODE)
+      if (existing === undefined) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)
       const updated: DataSourceRecord = { ...existing, readOnly }
       const updatedList = [...current]
       updatedList[index] = updated
       return { next: updatedList, result: updated }
     })
 
-    this.records.set(id, next)
+    this.records.set(name, next)
     // A read-only-flag change must reach the next connection: drop the live
     // adapter (SQLite's OS-level read-only mode is fixed at open time).
-    const liveAdapter = this.live.get(id)
-    this.live.delete(id)
+    const liveAdapter = this.live.get(name)
+    this.live.delete(name)
     if (liveAdapter !== undefined) {
       try {
         await (await liveAdapter).close()
@@ -149,12 +149,12 @@ export class DataSourceRegistry extends Service {
   }
 
   /** Get (opening lazily on first use, memoized) the live adapter for a source. */
-  async getAdapter(id: string): Promise<DataSourceAdapter> {
+  async getAdapter(name: string): Promise<DataSourceAdapter> {
     await this.guardReady()
-    const record = this.records.get(id)
-    if (record === undefined) throw new DataAgentError(`No data source named "${id}"`, SOURCE_NOT_FOUND_CODE)
+    const record = this.records.get(name)
+    if (record === undefined) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)
 
-    const existing = this.live.get(id)
+    const existing = this.live.get(name)
     if (existing !== undefined) return existing
 
     const opening = (async () => {
@@ -162,12 +162,12 @@ export class DataSourceRegistry extends Service {
       await adapter.connect()
       return adapter
     })()
-    this.live.set(id, opening)
+    this.live.set(name, opening)
     // A failed open must not be cached forever: evict it so the next call
     // (e.g. after fixing credentials) attempts a fresh connection instead of
     // permanently re-throwing the first failure.
     opening.catch(() => {
-      if (this.live.get(id) === opening) this.live.delete(id)
+      if (this.live.get(name) === opening) this.live.delete(name)
     })
 
     if (this.disposed) throw new DataAgentError('Data source registry is disposing', REGISTRY_DISPOSED_CODE)
@@ -184,6 +184,6 @@ export class DataSourceRegistry extends Service {
 
   private async loadRecords(): Promise<void> {
     const records = await readSources()
-    for (const record of records) this.records.set(record.id, record)
+    for (const record of records) this.records.set(record.name, record)
   }
 }

@@ -18,7 +18,7 @@ interface ChartSpec {
 }
 
 interface RunSqlValue extends QueryResult {
-  sourceId: string
+  sourceName: string
   sql: string
   chart?: ChartSpec
 }
@@ -71,9 +71,9 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['sourceId', 'sql'],
+      required: ['sourceName', 'sql'],
       properties: {
-        sourceId: { type: 'string' },
+        sourceName: { type: 'string' },
         sql: { type: 'string' },
         params: { type: 'array', items: {}, description: 'Bind parameters, in order.' },
         maxRows: { type: 'number', description: `Defaults to ${defaultMaxRows}, capped at ${HARD_MAX_ROWS}.` },
@@ -91,9 +91,9 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
     output: {
       schema: {
         type: 'object',
-        required: ['sourceId', 'sql', 'columns', 'rows', 'rowCount', 'truncated'],
+        required: ['sourceName', 'sql', 'columns', 'rows', 'rowCount', 'truncated'],
         properties: {
-          sourceId: { type: 'string' },
+          sourceName: { type: 'string' },
           sql: { type: 'string' },
           columns: { type: 'array', items: { type: 'object', required: ['name'], properties: { name: { type: 'string' }, dataType: { type: 'string' } } } },
           rows: { type: 'array', items: { type: 'object', properties: {} } },
@@ -123,20 +123,20 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
     },
     async execute(rawArgs): Promise<RunSqlValue> {
       const args = asRecord(rawArgs, NAME)
-      const sourceId = requireString(args, 'sourceId', NAME)
+      const sourceName = requireString(args, 'sourceName', NAME)
       const sql = requireString(args, 'sql', NAME)
       const params = parseParams(args)
       const maxRows = Math.min(optionalNumber(args, 'maxRows', NAME) ?? defaultMaxRows, HARD_MAX_ROWS)
 
-      const record = await ctx.dataAgent.get(sourceId)
-      if (record === undefined) throw new Error(`${NAME}: no data source named "${sourceId}"`)
+      const record = await ctx.dataAgent.get(sourceName)
+      if (record === undefined) throw new Error(`${NAME}: no data source named "${sourceName}"`)
       assertSqlAllowed(sql, record.engine, record.readOnly)
 
-      const adapter = await ctx.dataAgent.getAdapter(sourceId)
+      const adapter = await ctx.dataAgent.getAdapter(sourceName)
       const result = await adapter.runQuery(sql, { params, maxRows })
       const chart = parseChart(args, result.columns)
 
-      return { sourceId, sql, ...result, ...(chart !== undefined ? { chart } : {}) }
+      return { sourceName, sql, ...result, ...(chart !== undefined ? { chart } : {}) }
     },
   })
 }

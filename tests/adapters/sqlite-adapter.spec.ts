@@ -26,7 +26,7 @@ afterEach(async () => {
 
 function record(overrides: Partial<DataSourceRecord> = {}): DataSourceRecord {
   return {
-    id: 'sample',
+    name: 'sample',
     engine: 'sqlite',
     database: dbFile,
     readOnly: true,

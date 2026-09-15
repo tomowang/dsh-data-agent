@@ -74,7 +74,7 @@ export class PostgresAdapter implements DataSourceAdapter {
     }
 
     throw new DataAgentError(
-      `Failed to connect to PostgreSQL data source "${this.record.id}": ${(lastError as Error).message}`,
+      `Failed to connect to PostgreSQL data source "${this.record.name}": ${(lastError as Error).message}`,
       CONNECTION_FAILED_CODE,
       { cause: lastError },
     )
@@ -109,7 +109,7 @@ export class PostgresAdapter implements DataSourceAdapter {
         throw new DataAgentError(`Table "${options.table}" was not found`, TABLE_NOT_FOUND_CODE)
       }
       return {
-        sourceId: this.record.id,
+        sourceName: this.record.name,
         engine: 'postgres',
         scope: 'table',
         truncated: false,
@@ -134,7 +134,7 @@ export class PostgresAdapter implements DataSourceAdapter {
       columnCount: Number(row.column_count),
     }))
 
-    return { sourceId: this.record.id, engine: 'postgres', scope: 'database', tables, truncated }
+    return { sourceName: this.record.name, engine: 'postgres', scope: 'database', tables, truncated }
   }
 
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {

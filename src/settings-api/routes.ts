@@ -67,7 +67,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/add-source`,
     handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.addSource({
-      id: String(body.id ?? ''),
+      name: String(body.name ?? ''),
       engine: body.engine as 'mysql' | 'postgres' | 'sqlite',
       database: String(body.database ?? ''),
       host: typeof body.host === 'string' ? body.host : undefined,
@@ -85,14 +85,14 @@ export function applySettingsApiRoutes(ctx: Context): void {
   ctx.webServer.register({
     kind: 'exact',
     path: `${ROUTE_PREFIX}/remove-source`,
-    handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.removeSource(String(body.id ?? ''))),
+    handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.removeSource(String(body.name ?? ''))),
   })
 
   ctx.webServer.register({
     kind: 'exact',
     path: `${ROUTE_PREFIX}/test-connection`,
     handler: jsonRoute(ctx, async (_req, body) => {
-      const adapter = await ctx.dataAgent.getAdapter(String(body.id ?? ''))
+      const adapter = await ctx.dataAgent.getAdapter(String(body.name ?? ''))
       return adapter.testConnection()
     }),
   })
@@ -101,20 +101,20 @@ export function applySettingsApiRoutes(ctx: Context): void {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/set-read-only`,
     handler: jsonRoute(ctx, async (_req, body) =>
-      ctx.dataAgent.setReadOnly(String(body.id ?? ''), Boolean(body.readOnly))),
+      ctx.dataAgent.setReadOnly(String(body.name ?? ''), Boolean(body.readOnly))),
   })
 
   ctx.webServer.register({
     kind: 'exact',
     path: `${ROUTE_PREFIX}/get-schema`,
     handler: jsonRoute(ctx, async (_req, body) => {
-      const sourceId = String(body.sourceId ?? '')
-      const adapter = await ctx.dataAgent.getAdapter(sourceId)
+      const sourceName = String(body.sourceName ?? '')
+      const adapter = await ctx.dataAgent.getAdapter(sourceName)
       const schema = await adapter.getSchema({
         table: typeof body.table === 'string' ? body.table : undefined,
         schemaName: typeof body.schemaName === 'string' ? body.schemaName : undefined,
       })
-      const comments = await getSourceComments(sourceId)
+      const comments = await getSourceComments(sourceName)
       return mergeSchemaComments(schema, comments)
     }),
   })
@@ -123,12 +123,12 @@ export function applySettingsApiRoutes(ctx: Context): void {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/set-comment`,
     handler: jsonRoute(ctx, async (_req, body) => {
-      const sourceId = String(body.sourceId ?? '')
+      const sourceName = String(body.sourceName ?? '')
       const table = String(body.table ?? '')
       const column = typeof body.column === 'string' ? body.column : undefined
       const comment = typeof body.comment === 'string' && body.comment.length > 0 ? body.comment : null
-      await setComment(sourceId, table, column, comment)
-      return { sourceId, table, column, comment }
+      await setComment(sourceName, table, column, comment)
+      return { sourceName, table, column, comment }
     }),
   })
 }

@@ -10,7 +10,7 @@ export interface RunSqlChart {
 }
 
 export interface RunSqlCardModel {
-  sourceId: string
+  sourceName: string
   sql: string
   columns: readonly QueryColumn[]
   rows: readonly Record<string, JsonScalar>[]
@@ -55,7 +55,7 @@ export function runSqlCardModel(block: ToolCallBlock): RunSqlCardModel | null {
   const record = meta as Record<string, unknown>
 
   if (
-    typeof record.sourceId !== 'string'
+    typeof record.sourceName !== 'string'
     || typeof record.sql !== 'string'
     || typeof record.rowCount !== 'number'
     || typeof record.truncated !== 'boolean'
@@ -68,7 +68,7 @@ export function runSqlCardModel(block: ToolCallBlock): RunSqlCardModel | null {
   }
 
   return {
-    sourceId: record.sourceId,
+    sourceName: record.sourceName,
     sql: record.sql,
     columns: record.columns,
     rows: record.rows,
