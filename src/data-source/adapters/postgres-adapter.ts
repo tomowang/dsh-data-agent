@@ -130,7 +130,7 @@ export class PostgresAdapter implements DataSourceAdapter {
     const truncated = tableRows.length > maxTables
     const tables: TableInfo[] = tableRows.slice(0, maxTables).map(row => ({
       name: row.table_name,
-      comment: row.comment ?? undefined,
+      ...(row.comment !== null ? { comment: row.comment } : {}),
       columnCount: Number(row.column_count),
     }))
 
@@ -177,11 +177,11 @@ export class PostgresAdapter implements DataSourceAdapter {
       dataType: row.data_type,
       nullable: row.is_nullable === 'YES',
       isPrimaryKey: row.is_primary_key,
-      comment: row.comment ?? undefined,
+      ...(row.comment !== null ? { comment: row.comment } : {}),
     }))
     return {
       name: table,
-      comment: tableRow.comment ?? undefined,
+      ...(tableRow.comment !== null ? { comment: tableRow.comment } : {}),
       columnCount: rows.length,
       columns,
       truncated,

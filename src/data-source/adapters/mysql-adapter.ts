@@ -119,7 +119,7 @@ export class MysqlAdapter implements DataSourceAdapter {
 
     const tables: TableInfo[] = limited.map(row => ({
       name: row.TABLE_NAME,
-      comment: row.TABLE_COMMENT.length > 0 ? row.TABLE_COMMENT : undefined,
+      ...(row.TABLE_COMMENT.length > 0 ? { comment: row.TABLE_COMMENT } : {}),
       columnCount: columnCounts.get(row.TABLE_NAME) ?? 0,
     }))
 
@@ -159,11 +159,11 @@ export class MysqlAdapter implements DataSourceAdapter {
       dataType: row.DATA_TYPE,
       nullable: row.IS_NULLABLE === 'YES',
       isPrimaryKey: row.COLUMN_KEY === 'PRI',
-      comment: row.COLUMN_COMMENT.length > 0 ? row.COLUMN_COMMENT : undefined,
+      ...(row.COLUMN_COMMENT.length > 0 ? { comment: row.COLUMN_COMMENT } : {}),
     }))
     return {
       name: table,
-      comment: tableRow.TABLE_COMMENT.length > 0 ? tableRow.TABLE_COMMENT : undefined,
+      ...(tableRow.TABLE_COMMENT.length > 0 ? { comment: tableRow.TABLE_COMMENT } : {}),
       columnCount: rows.length,
       columns,
       truncated,
