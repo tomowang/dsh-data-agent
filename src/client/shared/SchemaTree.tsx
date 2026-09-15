@@ -1,19 +1,9 @@
 import * as React from 'react'
+import { DisclosureRow, IconCheckOutline16, IconCloseOutline16, IconDatabaseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SchemaResult, TableInfo } from '../../data-source/types.ts'
+import { ensureDshStyles } from './dsh-styles.ts'
 
-const tableCellStyle: React.CSSProperties = {
-  border: '1px solid rgba(128, 128, 128, 0.3)',
-  padding: '4px 8px',
-  textAlign: 'left',
-  fontSize: 12,
-}
-
-const inputStyle: React.CSSProperties = {
-  fontSize: 12,
-  padding: '2px 4px',
-  width: '100%',
-  boxSizing: 'border-box',
-}
+ensureDshStyles()
 
 export interface SchemaTreeProps {
   schema: SchemaResult
@@ -52,7 +42,7 @@ export function SchemaTree({ schema, onSaveComment, onExpandTable, loadingTables
           loading={loadingTables?.has(table.name) ?? false}
         />
       ))}
-      {schema.truncated && <p style={{ fontSize: 12, opacity: 0.7 }}>(table list truncated)</p>}
+      {schema.truncated && <p className="dsh-da-truncated">(table list truncated)</p>}
     </div>
   )
 }
@@ -65,46 +55,58 @@ function TableSection(
     loading: boolean
   },
 ): React.ReactElement {
+  const [open, setOpen] = React.useState(table.columns !== undefined)
+
+  const toggle = (): void => {
+    if (!open && table.columns === undefined) onExpand?.()
+    setOpen(!open)
+  }
+
   return (
-    <details
-      open={table.columns !== undefined}
-      style={{ marginBottom: 8 }}
-      onToggle={(event) => {
-        if (onExpand !== undefined && table.columns === undefined && (event.target as HTMLDetailsElement).open) onExpand()
-      }}
+    <DisclosureRow
+      icon={<IconDatabaseOutline16 />}
+      title={table.name}
+      open={open}
+      expandable
+      expandOnRowClick
+      keepContentWhenOpen
+      onToggle={toggle}
+      collapsedContent={<span className="dsh-da-tableMeta">{` (${table.columnCount} columns)`}</span>}
     >
-      <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-        {table.name}
-        <span style={{ fontWeight: 400, opacity: 0.7 }}> ({table.columnCount} columns)</span>
-      </summary>
-      <EditableComment table={table.name} column={undefined} text={table.comment} onSave={onSaveComment} />
-      {table.columns === undefined && loading && <p style={{ fontSize: 12, opacity: 0.7 }}>Loading columns…</p>}
-      {table.columns !== undefined && (
-        <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 4 }}>
-          <thead>
-            <tr>
-              {['column', 'type', 'nullable', 'pk', 'comment'].map(header => (
-                <th key={header} style={{ ...tableCellStyle, fontWeight: 600 }}>{header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {table.columns.map(column => (
-              <tr key={column.name}>
-                <td style={tableCellStyle}>{column.name}</td>
-                <td style={tableCellStyle}>{column.dataType}</td>
-                <td style={tableCellStyle}>{column.nullable ? 'yes' : 'no'}</td>
-                <td style={tableCellStyle}>{column.isPrimaryKey ? 'yes' : ''}</td>
-                <td style={tableCellStyle}>
-                  <EditableComment table={table.name} column={column.name} text={column.comment} onSave={onSaveComment} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {table.truncated === true && <p style={{ fontSize: 12, opacity: 0.7 }}>(column list truncated)</p>}
-    </details>
+      <div style={{ paddingLeft: 22 }}>
+        <EditableComment table={table.name} column={undefined} text={table.comment} onSave={onSaveComment} />
+        {table.columns === undefined && loading && <p className="dsh-da-loading">Loading columns…</p>}
+        {table.columns !== undefined && (
+          <div className="dsh-da-tableWrap">
+            <table className="dsh-da-table">
+              <thead>
+                <tr>
+                  <th>Column</th>
+                  <th>Type</th>
+                  <th>Nullable</th>
+                  <th>PK</th>
+                  <th>Comment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.columns.map(column => (
+                  <tr key={column.name}>
+                    <td>{column.name}</td>
+                    <td>{column.dataType}</td>
+                    <td>{column.nullable ? 'yes' : 'no'}</td>
+                    <td>{column.isPrimaryKey ? 'yes' : ''}</td>
+                    <td>
+                      <EditableComment table={table.name} column={column.name} text={column.comment} onSave={onSaveComment} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {table.truncated === true && <p className="dsh-da-truncated">(column list truncated)</p>}
+      </div>
+    </DisclosureRow>
   )
 }
 
@@ -122,24 +124,15 @@ function EditableComment({ table, column, text, onSave }: EditableCommentProps):
   const [saving, setSaving] = React.useState(false)
 
   if (onSave === undefined) {
-    return text !== undefined ? <span style={{ opacity: 0.8 }}>{text}</span> : null
+    return text !== undefined ? <span>{text}</span> : null
   }
 
   if (!editing) {
     return (
       <button
         type="button"
+        className={text !== undefined ? 'dsh-da-commentButton' : 'dsh-da-commentButton dsh-da-commentPlaceholder'}
         onClick={() => { setDraft(text ?? ''); setEditing(true) }}
-        style={{
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          color: 'inherit',
-          opacity: text !== undefined ? 0.8 : 0.5,
-          fontStyle: text !== undefined ? 'normal' : 'italic',
-          textDecoration: 'underline dotted',
-        }}
       >
         {text ?? 'add comment'}
       </button>
@@ -157,9 +150,9 @@ function EditableComment({ table, column, text, onSave }: EditableCommentProps):
   }
 
   return (
-    <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+    <span className="dsh-da-commentEditRow">
       <input
-        style={inputStyle}
+        className="dsh-da-input"
         value={draft}
         disabled={saving}
         onChange={event => setDraft(event.target.value)}
@@ -169,8 +162,12 @@ function EditableComment({ table, column, text, onSave }: EditableCommentProps):
         }}
         autoFocus
       />
-      <button type="button" disabled={saving} onClick={() => void save()}>save</button>
-      <button type="button" disabled={saving} onClick={() => setEditing(false)}>cancel</button>
+      <button type="button" className="dsh-da-iconButton" disabled={saving} aria-label="Save comment" onClick={() => void save()}>
+        <IconCheckOutline16 size={14} />
+      </button>
+      <button type="button" className="dsh-da-iconButton" disabled={saving} aria-label="Cancel" onClick={() => setEditing(false)}>
+        <IconCloseOutline16 size={14} />
+      </button>
     </span>
   )
 }

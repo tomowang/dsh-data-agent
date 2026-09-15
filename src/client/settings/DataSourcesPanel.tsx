@@ -1,17 +1,20 @@
 import * as React from 'react'
+import {
+  IconDatabaseOutline16,
+  IconPlusOutline16,
+  IconRefreshOutline16,
+  IconTrashOutline16,
+  Input,
+  StateDot,
+  Switch,
+  Tag,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionTestResult, DataSourceRecord, SchemaResult } from '../../data-source/types.ts'
+import { ensureDshStyles } from '../shared/dsh-styles.ts'
 import { SchemaTree } from '../shared/SchemaTree.tsx'
 import * as api from './api.ts'
 
-const fieldStyle: React.CSSProperties = { fontSize: 12, padding: '4px 6px', marginRight: 6, marginBottom: 6 }
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '6px 0',
-  borderBottom: '1px solid rgba(128, 128, 128, 0.2)',
-  fontSize: 13,
-}
+ensureDshStyles()
 
 type Engine = 'mysql' | 'postgres' | 'sqlite'
 
@@ -35,7 +38,12 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
   const [saving, setSaving] = React.useState(false)
 
   if (!open) {
-    return <button type="button" onClick={() => setOpen(true)}>+ Add data source</button>
+    return (
+      <button type="button" className="dsh-da-addButton" onClick={() => setOpen(true)}>
+        <IconPlusOutline16 size={14} />
+        Add data source
+      </button>
+    )
   }
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]): void => setForm(f => ({ ...f, [key]: value }))
@@ -70,51 +78,94 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
   const isSqlite = form.engine === 'sqlite'
 
   return (
-    <form onSubmit={event => void submit(event)} style={{ border: '1px solid rgba(128,128,128,0.3)', padding: 10, marginBottom: 10 }}>
-      <div>
-        <input style={fieldStyle} placeholder="id (e.g. prod-mysql)" value={form.id} onChange={e => set('id', e.target.value)} required />
-        <select style={fieldStyle} value={form.engine} onChange={e => set('engine', e.target.value as Engine)}>
-          <option value="sqlite">sqlite</option>
-          <option value="mysql">mysql</option>
-          <option value="postgres">postgres</option>
-        </select>
-      </div>
-      <div>
-        <input
-          style={fieldStyle}
-          placeholder={isSqlite ? 'file path' : 'database'}
-          value={form.database}
-          onChange={e => set('database', e.target.value)}
-          required
-        />
+    <form className="dsh-da-editor" onSubmit={event => void submit(event)}>
+      <p className="dsh-da-editorTitle">New data source</p>
+      <div className="dsh-da-fieldGrid">
+        <label className="dsh-da-field">
+          <span className="dsh-da-fieldLabel">Id</span>
+          <Input placeholder="e.g. prod-mysql" value={form.id} onChange={e => set('id', e.target.value)} required />
+        </label>
+        <label className="dsh-da-field">
+          <span className="dsh-da-fieldLabel">Engine</span>
+          <select
+            className="dsh-da-selectInput"
+            value={form.engine}
+            onChange={e => set('engine', e.target.value as Engine)}
+          >
+            <option value="sqlite">sqlite</option>
+            <option value="mysql">mysql</option>
+            <option value="postgres">postgres</option>
+          </select>
+        </label>
+        <label className="dsh-da-field">
+          <span className="dsh-da-fieldLabel">{isSqlite ? 'File path' : 'Database'}</span>
+          <Input
+            placeholder={isSqlite ? '/path/to/file.db' : 'database name'}
+            value={form.database}
+            onChange={e => set('database', e.target.value)}
+            required
+          />
+        </label>
         {!isSqlite && (
           <>
-            <input style={fieldStyle} placeholder="host" value={form.host} onChange={e => set('host', e.target.value)} />
-            <input style={fieldStyle} placeholder="port" value={form.port} onChange={e => set('port', e.target.value)} />
-            <input style={fieldStyle} placeholder="user" value={form.user} onChange={e => set('user', e.target.value)} />
-            <input
-              style={fieldStyle}
-              placeholder="passwordEnv (env var name)"
-              value={form.passwordEnv}
-              onChange={e => set('passwordEnv', e.target.value)}
-            />
+            <label className="dsh-da-field">
+              <span className="dsh-da-fieldLabel">Host</span>
+              <Input placeholder="host" value={form.host} onChange={e => set('host', e.target.value)} />
+            </label>
+            <label className="dsh-da-field">
+              <span className="dsh-da-fieldLabel">Port</span>
+              <Input placeholder="port" value={form.port} onChange={e => set('port', e.target.value)} />
+            </label>
+            <label className="dsh-da-field">
+              <span className="dsh-da-fieldLabel">User</span>
+              <Input placeholder="user" value={form.user} onChange={e => set('user', e.target.value)} />
+            </label>
+            <label className="dsh-da-field">
+              <span className="dsh-da-fieldLabel">Password env var</span>
+              <Input placeholder="e.g. PROD_DB_PASSWORD" value={form.passwordEnv} onChange={e => set('passwordEnv', e.target.value)} />
+            </label>
           </>
         )}
       </div>
-      <label style={{ fontSize: 12, marginRight: 12 }}>
-        <input type="checkbox" checked={form.readOnly} onChange={e => set('readOnly', e.target.checked)} /> read-only
-      </label>
-      {!isSqlite && (
-        <label style={{ fontSize: 12 }}>
-          <input type="checkbox" checked={form.ssl} onChange={e => set('ssl', e.target.checked)} /> ssl
+      <div className="dsh-da-fieldGrid">
+        <label className="dsh-da-switchRow">
+          <Switch checked={form.readOnly} onChange={value => set('readOnly', value)} label="Read-only" />
+          <span className="dsh-da-switchLabel">Read-only</span>
         </label>
-      )}
-      <div style={{ marginTop: 8 }}>
-        <button type="submit" disabled={saving}>{saving ? 'Adding…' : 'Add'}</button>
-        <button type="button" onClick={() => setOpen(false)} style={{ marginLeft: 6 }}>Cancel</button>
+        {!isSqlite && (
+          <label className="dsh-da-switchRow">
+            <Switch checked={form.ssl} onChange={value => set('ssl', value)} label="Use SSL" />
+            <span className="dsh-da-switchLabel">SSL</span>
+          </label>
+        )}
       </div>
-      {error !== undefined && <p style={{ color: '#c2554a', fontSize: 12 }}>{error}</p>}
+      {error !== undefined && <p className="dsh-da-error">{error}</p>}
+      <div className="dsh-da-editorActions">
+        <button type="button" className="dsh-da-secondaryButton" disabled={saving} onClick={() => { setOpen(false); setError(undefined) }}>
+          Cancel
+        </button>
+        <button type="submit" className="dsh-da-primaryButton" disabled={saving}>
+          {saving ? 'Adding…' : 'Add'}
+        </button>
+      </div>
     </form>
+  )
+}
+
+function connectionStatusLine(result: ConnectionTestResult): React.ReactElement {
+  if (result.ok) {
+    return (
+      <div className="dsh-da-statusLine dsh-da-statusOk">
+        <StateDot state="done" />
+        <span>{`Connected in ${result.latencyMs ?? '?'}ms.`}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="dsh-da-statusLine dsh-da-statusErr">
+      <StateDot state="error" />
+      <span>{`Failed: ${result.error?.message}`}</span>
+    </div>
   )
 }
 
@@ -193,32 +244,42 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
   const location = source.engine === 'sqlite' ? source.database : `${source.host ?? ''}${source.port !== undefined ? `:${source.port}` : ''}/${source.database}`
 
   return (
-    <div>
-      <div style={rowStyle}>
-        <strong>{source.id}</strong>
-        <span style={{ opacity: 0.7 }}>{source.engine}</span>
-        <span style={{ opacity: 0.7, flex: 1 }}>{location}</span>
-        <label>
-          <input
-            type="checkbox"
-            checked={source.readOnly}
-            onChange={e => void api.setReadOnly(source.id, e.target.checked).then(onChanged)}
-          /> read-only
-        </label>
-        <button type="button" disabled={testing} onClick={() => void test()}>
-          {testing ? 'Testing…' : 'Test'}
-        </button>
-        <button type="button" onClick={() => void toggleSchema()}>{schemaOpen ? 'Hide schema' : 'View schema'}</button>
-        <button type="button" onClick={() => void api.removeSource(source.id).then(onChanged)}>Remove</button>
+    <li className="dsh-da-rowCard">
+      <div className="dsh-da-rowHead">
+        <span className="dsh-da-rowIdentity">
+          <span className="dsh-da-rowName">{source.id}</span>
+          <Tag tone="neutral">{source.engine}</Tag>
+          {!source.readOnly && <Tag tone="warning">read-write</Tag>}
+        </span>
+        <span className="dsh-da-rowActions">
+          <label className="dsh-da-switchRow">
+            <Switch
+              checked={source.readOnly}
+              onChange={value => void api.setReadOnly(source.id, value).then(onChanged)}
+              label={`Read-only for ${source.id}`}
+              title="Read-only"
+            />
+            <span className="dsh-da-switchLabel">Read-only</span>
+          </label>
+          <button type="button" className="dsh-da-secondaryButton" disabled={testing} onClick={() => void test()}>
+            <IconRefreshOutline16 size={14} />
+            {testing ? 'Testing…' : 'Test'}
+          </button>
+          <button type="button" className="dsh-da-secondaryButton" onClick={() => void toggleSchema()}>
+            <IconDatabaseOutline16 size={14} />
+            {schemaOpen ? 'Hide schema' : 'View schema'}
+          </button>
+          <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.id).then(onChanged)}>
+            <IconTrashOutline16 size={14} />
+            Remove
+          </button>
+        </span>
       </div>
-      {testResult !== undefined && (
-        <div style={{ fontSize: 12, color: testResult.ok ? '#63a375' : '#c2554a' }}>
-          {testResult.ok ? `Connected in ${testResult.latencyMs ?? '?'}ms.` : `Failed: ${testResult.error?.message}`}
-        </div>
-      )}
+      <div className="dsh-da-rowMeta">{location}</div>
+      {testResult !== undefined && connectionStatusLine(testResult)}
       {schemaOpen && (
-        <div style={{ padding: '8px 0 8px 16px' }}>
-          {schemaError !== undefined && <p style={{ color: '#c2554a', fontSize: 12 }}>{schemaError}</p>}
+        <div className="dsh-da-schemaSection">
+          {schemaError !== undefined && <p className="dsh-da-error">{schemaError}</p>}
           {schema !== undefined && (
             <SchemaTree
               schema={schema}
@@ -229,7 +290,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
           )}
         </div>
       )}
-    </div>
+    </li>
   )
 }
 
@@ -248,15 +309,18 @@ export function DataSourcesPanel(): React.ReactElement {
   React.useEffect(() => { refresh() }, [refresh])
 
   return (
-    <div style={{ padding: 16 }}>
-      <h2 style={{ fontSize: 16, marginBottom: 12 }}>Data Sources</h2>
+    <div className="dsh-da-section">
+      <h2 className="dsh-da-title">Data Sources</h2>
+      <p className="dsh-da-intro">Register MySQL, PostgreSQL, or SQLite connections for chat tools to query.</p>
+      {error !== undefined && <p className="dsh-da-error">{error}</p>}
+      <ul className="dsh-da-rows">
+        {sources === undefined
+          ? <p className="dsh-da-loading">Loading…</p>
+          : sources.length === 0
+            ? <p className="dsh-da-empty">No data sources registered yet.</p>
+            : sources.map(source => <SourceRow key={source.id} source={source} onChanged={refresh} />)}
+      </ul>
       <AddSourceForm onAdded={refresh} />
-      {error !== undefined && <p style={{ color: '#c2554a', fontSize: 12 }}>{error}</p>}
-      {sources === undefined
-        ? <p style={{ fontSize: 12, opacity: 0.7 }}>Loading…</p>
-        : sources.length === 0
-          ? <p style={{ fontSize: 12, opacity: 0.7 }}>No data sources registered yet.</p>
-          : sources.map(source => <SourceRow key={source.id} source={source} onChanged={refresh} />)}
     </div>
   )
 }

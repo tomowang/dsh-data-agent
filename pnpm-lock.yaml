@@ -30,6 +30,9 @@ importers:
       '@deepseek-ai/cordis':
         specifier: ^4.0.2
         version: 4.0.2
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: 0.1.5-rc.2
+        version: 0.1.5-rc.2(@deepseek-ai/cordis@4.0.2)
       '@deepseek-ai/schemastery':
         specifier: ^3.18.2
         version: 3.18.2
@@ -99,6 +102,11 @@ packages:
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.1-rc.1
       '@deepseek-ai/dsh-invariants': ^0.0.1-rc.1
+
+  '@deepseek-ai/dsh-client-ui-primitives@0.1.5-rc.2':
+    resolution: {integrity: sha512-APWho69VlEmbLGqzBLiybTtjun93tEbxMMJlm+Q129Cx7ZGJak3DNfQtW3OPzBCf3Gzs2PGEz8fKbunTpea2jQ==}
+    peerDependencies:
+      '@deepseek-ai/cordis': ^4.0.2
 
   '@deepseek-ai/dsh-credentials@0.0.1-rc.1':
     resolution: {integrity: sha512-9y+lWKn2+NubLCpC/lsz9BiYDZHZcWMoYE3cAHJqnlVw0SygUh9D7I81DGqlV9LqY7Z0Y/gxsZcR7sfEMCw4Wg==}
@@ -1002,6 +1010,10 @@ snapshots:
     dependencies:
       '@deepseek-ai/cordis': 4.0.2
       '@deepseek-ai/dsh-invariants': 0.0.1-rc.5(@deepseek-ai/cordis@4.0.2)
+
+  '@deepseek-ai/dsh-client-ui-primitives@0.1.5-rc.2(@deepseek-ai/cordis@4.0.2)':
+    dependencies:
+      '@deepseek-ai/cordis': 4.0.2
 
   '@deepseek-ai/dsh-credentials@0.0.1-rc.1(@deepseek-ai/cordis@4.0.2)(@deepseek-ai/dsh-brand@0.0.1-rc.1(@deepseek-ai/cordis@4.0.2)(@deepseek-ai/dsh-invariants@0.0.1-rc.5(@deepseek-ai/cordis@4.0.2)))(@deepseek-ai/dsh-invariants@0.0.1-rc.5(@deepseek-ai/cordis@4.0.2))':
     dependencies:
