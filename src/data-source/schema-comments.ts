@@ -9,7 +9,10 @@ interface TableComments {
 function mergeComment(overlay: string | undefined, native: string | undefined): Pick<TableInfo, 'comment' | 'nativeComment'> {
   const comment = overlay ?? native
   const nativeComment = native !== undefined && native !== comment ? native : undefined
-  return { comment, ...(nativeComment !== undefined ? { nativeComment } : {}) }
+  return {
+    ...(comment !== undefined ? { comment } : {}),
+    ...(nativeComment !== undefined ? { nativeComment } : {}),
+  }
 }
 
 function mergeTable(table: TableInfo, comments: Record<string, TableComments>): TableInfo {
