@@ -41,6 +41,28 @@ export function addSource(input: AddSourceInput): Promise<DataSourceRecord> {
   return call('add-source', input)
 }
 
+/**
+ * Patch for `editSource`. `name` and `engine` aren't editable — see
+ * `EditSourceInput` in `src/data-source/registry.ts`. Every other field is a
+ * three-way patch: omit to leave unchanged, `null` to clear, a value to set.
+ */
+export interface EditSourceInput {
+  host?: string | null
+  port?: number | null
+  database?: string
+  user?: string | null
+  passwordEnv?: string | null
+  ssl?: boolean | null
+  sslmode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full' | null
+  sslrootcert?: string | null
+  readOnly?: boolean
+  description?: string | null
+}
+
+export function editSource(name: string, input: EditSourceInput): Promise<DataSourceRecord> {
+  return call('edit-source', { name, ...input })
+}
+
 export function removeSource(name: string): Promise<{ name: string, found: boolean }> {
   return call('remove-source', { name })
 }

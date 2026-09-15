@@ -4,7 +4,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 
 ## Features
 
-- **Data-source management** — register MySQL, PostgreSQL, or SQLite connections (`add_data_source`/`remove_data_source`/`list_data_sources`), or manage them from Settings → Data Sources.
+- **Data-source management** — register MySQL, PostgreSQL, or SQLite connections (`add_data_source`/`edit_data_source`/`remove_data_source`/`list_data_sources`), or manage them from Settings → Data Sources.
 - **Connection checks & schema browsing** — `test_connection` and `get_schema` (database overview or full column detail for one table), rendered as a Markdown table in chat and as a rich, expandable browser in both the chat card and the Settings schema viewer.
 - **Table/column comments** — `set_comment` from chat, or click-to-edit inline in the Settings schema viewer; both write to the same store.
 - **SQL execution with a read-only toggle** — `run_sql`, AST-verified (not string-matched) to reject write statements on a read-only source and to always reject statement-stacking. Toggle a source's read-only flag anytime with `set_read_only` (or the checkbox in Settings).
@@ -39,7 +39,7 @@ src/
     persistence/          sources.json / comments.json (atomic, cross-process-safe)
     adapters/              one DataSourceAdapter implementation per engine (mysql2, pg, node:sqlite)
   sql/classify.ts         node-sql-parser-based read-only + single-statement enforcement
-  tools/                  the eight model-facing tools (one file each)
+  tools/                  the nine model-facing tools (one file each)
   settings-api/           raw ctx.webServer routes + Origin trust check backing the Settings panel
 src/client/                the browser bundle (see below)
   index.ts                client plugin entry: registers the two chat toolviews + the Settings section

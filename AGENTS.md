@@ -7,7 +7,7 @@ not already there.
 ## Project shape
 
 A DeepSeek Harness (`dsh`) plugin: `src/` is the Host half (Node, Cordis
-plugin, the eight chat tools, the Settings-API routes); `src/client/` is a
+plugin, the nine chat tools, the Settings-API routes); `src/client/` is a
 separate browser bundle (`lib/client.js`, built with esbuild) providing the
 chat toolviews and the Settings → Data Sources panel. See `README.md`
 → "Project layout" for the full file map.

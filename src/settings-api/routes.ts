@@ -20,6 +20,27 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
   return value as Record<string, unknown>
 }
 
+/** For an edit-source field: `null` in the body means "clear", anything else non-string means "leave as-is". */
+function nullableString(value: unknown): string | null | undefined {
+  if (typeof value === 'string') return value
+  return value === null ? null : undefined
+}
+
+function nullableNumber(value: unknown): number | null | undefined {
+  if (typeof value === 'number') return value
+  return value === null ? null : undefined
+}
+
+function nullableBoolean(value: unknown): boolean | null | undefined {
+  if (typeof value === 'boolean') return value
+  return value === null ? null : undefined
+}
+
+function nullableEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null | undefined {
+  if ((allowed as readonly unknown[]).includes(value)) return value as T
+  return value === null ? null : undefined
+}
+
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body)
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
@@ -79,6 +100,23 @@ export function applySettingsApiRoutes(ctx: Context): void {
       sslrootcert: typeof body.sslrootcert === 'string' ? body.sslrootcert : undefined,
       readOnly: typeof body.readOnly === 'boolean' ? body.readOnly : true,
       description: typeof body.description === 'string' ? body.description : undefined,
+    })),
+  })
+
+  ctx.webServer.register({
+    kind: 'exact',
+    path: `${ROUTE_PREFIX}/edit-source`,
+    handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.editSource(String(body.name ?? ''), {
+      host: nullableString(body.host),
+      port: nullableNumber(body.port),
+      database: typeof body.database === 'string' ? body.database : undefined,
+      user: nullableString(body.user),
+      passwordEnv: nullableString(body.passwordEnv),
+      ssl: nullableBoolean(body.ssl),
+      sslmode: nullableEnum(body.sslmode, SSL_MODES),
+      sslrootcert: nullableString(body.sslrootcert),
+      readOnly: typeof body.readOnly === 'boolean' ? body.readOnly : undefined,
+      description: nullableString(body.description),
     })),
   })
 

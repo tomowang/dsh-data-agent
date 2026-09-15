@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
   IconDatabaseOutline16,
+  IconEditOutline16,
   IconPlusOutline16,
   IconRefreshOutline16,
   IconTrashOutline16,
@@ -15,9 +16,11 @@ import { SchemaTree } from '../shared/SchemaTree.tsx'
 import * as api from './api.ts'
 import {
   buildAddSourceInput,
+  buildEditSourceInput,
   defaultFieldValues,
   ENGINE_FORM_SCHEMAS,
   ENGINE_ORDER,
+  fieldValuesFromRecord,
   type FieldSpec,
   type FieldValues,
   visibleFields,
@@ -128,6 +131,10 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
         {textFields.map(field => (
           <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
         ))}
+        <label className="dsh-da-field">
+          <span className="dsh-da-fieldLabel">Description</span>
+          <Input placeholder="Optional" value={description} onChange={e => setDescription(e.target.value)} />
+        </label>
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
@@ -145,6 +152,71 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
         </button>
         <button type="submit" className="dsh-da-primaryButton" disabled={saving}>
           {saving ? 'Adding…' : 'Add'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function EditSourceForm({ source, onSaved, onCancel }: {
+  source: DataSourceRecord
+  onSaved: () => void
+  onCancel: () => void
+}): React.ReactElement {
+  const [values, setValues] = React.useState<FieldValues>(() => fieldValuesFromRecord(source.engine, source))
+  const [readOnly, setReadOnly] = React.useState(source.readOnly)
+  const [description, setDescription] = React.useState(source.description ?? '')
+  const [error, setError] = React.useState<string | undefined>(undefined)
+  const [saving, setSaving] = React.useState(false)
+
+  const setField = (key: string, value: string | boolean): void => setValues(v => ({ ...v, [key]: value }))
+
+  const submit = async (event: React.FormEvent): Promise<void> => {
+    event.preventDefault()
+    setSaving(true)
+    setError(undefined)
+    try {
+      await api.editSource(source.name, buildEditSourceInput(source.engine, readOnly, description, values))
+      onSaved()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const fields = visibleFields(source.engine, values)
+  const textFields = fields.filter(field => field.type !== 'switch')
+  const switchFields = fields.filter(field => field.type === 'switch')
+
+  return (
+    <form className="dsh-da-editor" onSubmit={event => void submit(event)}>
+      <p className="dsh-da-editorTitle">{`Edit ${source.name}`}</p>
+      <div className="dsh-da-fieldGrid">
+        {textFields.map(field => (
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+        ))}
+        <label className="dsh-da-field">
+          <span className="dsh-da-fieldLabel">Description</span>
+          <Input placeholder="Optional" value={description} onChange={e => setDescription(e.target.value)} />
+        </label>
+      </div>
+      <div className="dsh-da-fieldGrid">
+        <label className="dsh-da-switchRow">
+          <Switch checked={readOnly} onChange={setReadOnly} label="Read-only" />
+          <span className="dsh-da-switchLabel">Read-only</span>
+        </label>
+        {switchFields.map(field => (
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+        ))}
+      </div>
+      {error !== undefined && <p className="dsh-da-error">{error}</p>}
+      <div className="dsh-da-editorActions">
+        <button type="button" className="dsh-da-secondaryButton" disabled={saving} onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="submit" className="dsh-da-primaryButton" disabled={saving}>
+          {saving ? 'Saving…' : 'Save'}
         </button>
       </div>
     </form>
@@ -175,6 +247,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
   const [schemaOpen, setSchemaOpen] = React.useState(false)
   const [schemaError, setSchemaError] = React.useState<string | undefined>(undefined)
   const [loadingTables, setLoadingTables] = React.useState<Set<string>>(new Set())
+  const [editing, setEditing] = React.useState(false)
 
   const test = async (): Promise<void> => {
     setTesting(true)
@@ -252,47 +325,65 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
           <Tag tone="neutral">{source.engine}</Tag>
           {!source.readOnly && <Tag tone="warning">read-write</Tag>}
         </span>
-        <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
-          <IconTrashOutline16 size={14} />
-          Remove
-        </button>
-      </div>
-      <div className="dsh-da-rowMeta">{location}</div>
-      <div className="dsh-da-rowToolbar">
-        <label className="dsh-da-switchRow">
-          <Switch
-            checked={source.readOnly}
-            onChange={value => void api.setReadOnly(source.name, value).then(onChanged)}
-            label={`Read-only for ${source.name}`}
-            title="Read-only"
-          />
-          <span className="dsh-da-switchLabel">Read-only</span>
-        </label>
         <span className="dsh-da-rowActions">
-          <button type="button" className="dsh-da-secondaryButton" disabled={testing} onClick={() => void test()}>
-            <IconRefreshOutline16 size={14} />
-            {testing ? 'Testing…' : 'Test'}
+          <button type="button" className="dsh-da-secondaryButton" onClick={() => setEditing(true)}>
+            <IconEditOutline16 size={14} />
+            Edit
           </button>
-          <button type="button" className="dsh-da-secondaryButton" onClick={() => void toggleSchema()}>
-            <IconDatabaseOutline16 size={14} />
-            {schemaOpen ? 'Hide schema' : 'View schema'}
+          <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
+            <IconTrashOutline16 size={14} />
+            Remove
           </button>
         </span>
       </div>
-      {testResult !== undefined && connectionStatusLine(testResult)}
-      {schemaOpen && (
-        <div className="dsh-da-schemaSection">
-          {schemaError !== undefined && <p className="dsh-da-error">{schemaError}</p>}
-          {schema !== undefined && (
-            <SchemaTree
-              schema={schema}
-              onSaveComment={saveComment}
-              onExpandTable={table => void expandTable(table)}
-              loadingTables={loadingTables}
-            />
-          )}
-        </div>
-      )}
+      {editing
+        ? (
+          <EditSourceForm
+            source={source}
+            onSaved={() => { setEditing(false); onChanged() }}
+            onCancel={() => setEditing(false)}
+          />
+        )
+        : (
+          <>
+            <div className="dsh-da-rowMeta">{location}</div>
+            <div className="dsh-da-rowToolbar">
+              <label className="dsh-da-switchRow">
+                <Switch
+                  checked={source.readOnly}
+                  onChange={value => void api.setReadOnly(source.name, value).then(onChanged)}
+                  label={`Read-only for ${source.name}`}
+                  title="Read-only"
+                />
+                <span className="dsh-da-switchLabel">Read-only</span>
+              </label>
+              <span className="dsh-da-rowActions">
+                <button type="button" className="dsh-da-secondaryButton" disabled={testing} onClick={() => void test()}>
+                  <IconRefreshOutline16 size={14} />
+                  {testing ? 'Testing…' : 'Test'}
+                </button>
+                <button type="button" className="dsh-da-secondaryButton" onClick={() => void toggleSchema()}>
+                  <IconDatabaseOutline16 size={14} />
+                  {schemaOpen ? 'Hide schema' : 'View schema'}
+                </button>
+              </span>
+            </div>
+            {testResult !== undefined && connectionStatusLine(testResult)}
+            {schemaOpen && (
+              <div className="dsh-da-schemaSection">
+                {schemaError !== undefined && <p className="dsh-da-error">{schemaError}</p>}
+                {schema !== undefined && (
+                  <SchemaTree
+                    schema={schema}
+                    onSaveComment={saveComment}
+                    onExpandTable={table => void expandTable(table)}
+                    loadingTables={loadingTables}
+                  />
+                )}
+              </div>
+            )}
+          </>
+        )}
     </li>
   )
 }

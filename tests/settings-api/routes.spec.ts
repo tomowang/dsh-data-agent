@@ -114,6 +114,28 @@ describe('settings-api routes', () => {
     await dispose()
   })
 
+  it('edit-source patches provided fields and clears explicit nulls, leaving omitted fields untouched', async () => {
+    const { routes, dispose } = await createTestContext()
+
+    await routes.get('/dsh-data-agent/api/add-source')?.(
+      fakeReq({ name: 'sample', engine: 'mysql', host: 'db1.internal', database: 'app', user: 'root', readOnly: true }),
+      fakeRes().res,
+    )
+
+    const edit = fakeRes()
+    await routes.get('/dsh-data-agent/api/edit-source')?.(
+      fakeReq({ name: 'sample', host: 'db2.internal', user: null }),
+      edit.res,
+    )
+    expect(edit.result.status).toBe(200)
+    const updated = edit.result.body as { host?: string, user?: string, database: string }
+    expect(updated.host).toBe('db2.internal')
+    expect('user' in updated).toBe(false)
+    expect(updated.database).toBe('app')
+
+    await dispose()
+  })
+
   it('maps an unknown source name to a 404-shaped error, not a crash', async () => {
     const { routes, dispose } = await createTestContext()
     const { res, result } = fakeRes()

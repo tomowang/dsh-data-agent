@@ -1,5 +1,5 @@
-import type { Engine } from '../../data-source/types.ts'
-import type { AddSourceInput } from './api.ts'
+import type { DataSourceRecord, Engine } from '../../data-source/types.ts'
+import type { AddSourceInput, EditSourceInput } from './api.ts'
 
 /**
  * Adapter-style description of one data source type's "add source" form.
@@ -98,6 +98,18 @@ export function visibleFields(engine: Engine, values: FieldValues): readonly Fie
   return ENGINE_FORM_SCHEMAS[engine].fields.filter(field => field.visibleWhen === undefined || field.visibleWhen(values))
 }
 
+/** Seeds edit-form state from an existing record — the inverse of `buildEditSourceInput`. */
+export function fieldValuesFromRecord(engine: Engine, record: DataSourceRecord): FieldValues {
+  const values = defaultFieldValues(engine)
+  const source = record as unknown as Record<string, string | number | boolean | undefined>
+  for (const field of ENGINE_FORM_SCHEMAS[engine].fields) {
+    const raw = source[field.key]
+    if (raw === undefined) continue
+    values[field.key] = field.type === 'switch' ? Boolean(raw) : String(raw)
+  }
+  return values
+}
+
 /** Assembles the API payload from generic form state — the one place field keys meet `AddSourceInput`. */
 export function buildAddSourceInput(
   engine: Engine,
@@ -118,4 +130,39 @@ export function buildAddSourceInput(
   }
   if (description.length > 0) payload.description = description
   return payload as unknown as AddSourceInput
+}
+
+/**
+ * Assembles an `editSource` patch from generic form state. Unlike
+ * `buildAddSourceInput` (which just omits an empty/hidden field, fine for a
+ * brand-new record), this always sets every field explicitly — an empty or
+ * newly-hidden field is sent as `null` so it actually clears a previously
+ * saved value instead of silently leaving it in place.
+ */
+export function buildEditSourceInput(
+  engine: Engine,
+  readOnly: boolean,
+  description: string,
+  values: FieldValues,
+): EditSourceInput {
+  const payload: Record<string, string | number | boolean | null | undefined> = { readOnly }
+  const visible = new Set(visibleFields(engine, values).map(field => field.key))
+  for (const field of ENGINE_FORM_SCHEMAS[engine].fields) {
+    if (!visible.has(field.key)) {
+      if (field.key !== 'database') payload[field.key] = null
+      continue
+    }
+    const raw = values[field.key]
+    if (field.type === 'switch') {
+      payload[field.key] = raw === true
+      continue
+    }
+    if (typeof raw !== 'string' || raw.length === 0) {
+      if (field.key !== 'database') payload[field.key] = null
+      continue
+    }
+    payload[field.key] = field.type === 'number' ? Number(raw) : raw
+  }
+  payload.description = description.length > 0 ? description : null
+  return payload as unknown as EditSourceInput
 }

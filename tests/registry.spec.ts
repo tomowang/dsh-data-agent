@@ -96,6 +96,47 @@ describe('DataSourceRegistry', () => {
     await dispose()
   })
 
+  it('editSource patches given fields, clears null fields, and leaves omitted fields untouched', async () => {
+    const { registry, dispose } = await createRegistry()
+    await registry.addSource({
+      name: 'sample',
+      engine: 'mysql',
+      host: 'db1.internal',
+      port: 3306,
+      database: 'app',
+      user: 'root',
+      readOnly: true,
+      description: 'legacy',
+    })
+
+    // Omitted field (user) is untouched; a provided field (host) is set; a
+    // nulled field (description) is cleared.
+    const updated = await registry.editSource('sample', { host: 'db2.internal', description: null })
+    expect(updated.host).toBe('db2.internal')
+    expect(updated.user).toBe('root')
+    expect('description' in updated).toBe(false)
+
+    await dispose()
+  })
+
+  it('editSource rejects an unknown name', async () => {
+    const { registry, dispose } = await createRegistry()
+    await expect(registry.editSource('missing', { readOnly: false })).rejects.toThrow(/No data source named/)
+    await dispose()
+  })
+
+  it('editSource drops any live connection so it reopens under the new settings', async () => {
+    const { registry, dispose } = await createRegistry()
+    await registry.addSource({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })
+    await registry.getAdapter('sample')
+
+    const updated = await registry.editSource('sample', { readOnly: false })
+    expect(updated.readOnly).toBe(false)
+    expect((await registry.get('sample'))?.readOnly).toBe(false)
+
+    await dispose()
+  })
+
   it('omits unset optional fields from the added record entirely, rather than setting them to undefined', async () => {
     const { registry, dispose } = await createRegistry()
     const record = await registry.addSource({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })

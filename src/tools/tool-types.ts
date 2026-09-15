@@ -101,6 +101,44 @@ export function optionalBoolean(record: Record<string, unknown>, key: string, to
   return value
 }
 
+/** Three-way form for a patch field: `undefined` (not provided, leave unchanged), `null` (clear), or a value (set). */
+export function optionalNullableString(record: Record<string, unknown>, key: string, toolName: string): string | null | undefined {
+  const value = record[key]
+  if (value === undefined || value === null) return value
+  if (typeof value !== 'string') throw new ToolInputError(`${toolName}: "${key}" must be a string or null`)
+  return value
+}
+
+export function optionalNullableNumber(record: Record<string, unknown>, key: string, toolName: string): number | null | undefined {
+  const value = record[key]
+  if (value === undefined || value === null) return value
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new ToolInputError(`${toolName}: "${key}" must be a finite number or null`)
+  }
+  return value
+}
+
+export function optionalNullableBoolean(record: Record<string, unknown>, key: string, toolName: string): boolean | null | undefined {
+  const value = record[key]
+  if (value === undefined || value === null) return value
+  if (typeof value !== 'boolean') throw new ToolInputError(`${toolName}: "${key}" must be a boolean or null`)
+  return value
+}
+
+export function optionalNullableEnum<T extends string>(
+  record: Record<string, unknown>,
+  key: string,
+  allowed: readonly T[],
+  toolName: string,
+): T | null | undefined {
+  const value = record[key]
+  if (value === undefined || value === null) return value
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+    throw new ToolInputError(`${toolName}: "${key}" must be one of ${allowed.join(', ')}, or null`)
+  }
+  return value as T
+}
+
 export function optionalEnum<T extends string>(
   record: Record<string, unknown>,
   key: string,

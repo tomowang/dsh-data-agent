@@ -3,6 +3,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { DataSourceRegistry } from './data-source/registry.ts'
 import { applySettingsApiRoutes } from './settings-api/routes.ts'
 import { applyAddDataSourceTool } from './tools/add-data-source.ts'
+import { applyEditDataSourceTool } from './tools/edit-data-source.ts'
 import { applyGetSchemaTool } from './tools/get-schema.ts'
 import { applyListDataSourcesTool } from './tools/list-data-sources.ts'
 import { applyRemoveDataSourceTool } from './tools/remove-data-source.ts'
@@ -30,6 +31,7 @@ export function apply(ctx: Context, config: Config): void {
     inject: ['tools', 'dataAgent'],
     apply(toolsCtx: Context) {
       applyAddDataSourceTool(toolsCtx)
+      applyEditDataSourceTool(toolsCtx)
       applyRemoveDataSourceTool(toolsCtx)
       applyListDataSourcesTool(toolsCtx)
       applyTestConnectionTool(toolsCtx)

@@ -31,6 +31,30 @@ export interface AddSourceInput {
   readonly description?: string
 }
 
+/**
+ * Patch for `editSource`. `name` and `engine` are fixed at creation — a
+ * changed engine is a different adapter entirely, and `name` is the
+ * lookup key used everywhere (chat tools, live-adapter cache, comments
+ * store) — so changing either means remove + re-add, not edit.
+ *
+ * Every other field is a three-way patch: omit the key to leave it
+ * unchanged, set it to `null` to clear it, or set it to a value to
+ * replace it. `database` and `readOnly` aren't nullable — they're required
+ * on every record — so they're plain optional (undefined = unchanged).
+ */
+export interface EditSourceInput {
+  readonly host?: string | null
+  readonly port?: number | null
+  readonly database?: string
+  readonly user?: string | null
+  readonly passwordEnv?: string | null
+  readonly ssl?: boolean | null
+  readonly sslmode?: DataSourceRecord['sslmode'] | null
+  readonly sslrootcert?: string | null
+  readonly readOnly?: boolean
+  readonly description?: string | null
+}
+
 /** Errors that already-closed connections raise on a second close; safe to swallow during teardown. */
 function isAlreadyClosedError(error: unknown): boolean {
   const code = (error as { code?: unknown } | undefined)?.code
@@ -40,6 +64,29 @@ function isAlreadyClosedError(error: unknown): boolean {
 /** Drop explicit `undefined`-valued keys, e.g. from an omitted optional input field — `undefined` isn't valid JSON. */
 function omitUndefined<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T
+}
+
+/** `undefined` (not provided) keeps `existing`; `null` (explicit clear) becomes `undefined`; a value replaces it. */
+function applyNullable<T>(existing: T | undefined, incoming: T | null | undefined): T | undefined {
+  if (incoming === undefined) return existing
+  if (incoming === null) return undefined
+  return incoming
+}
+
+function applyEdit(existing: DataSourceRecord, input: EditSourceInput): DataSourceRecord {
+  return omitUndefined({
+    ...existing,
+    database: input.database ?? existing.database,
+    readOnly: input.readOnly ?? existing.readOnly,
+    host: applyNullable(existing.host, input.host),
+    port: applyNullable(existing.port, input.port),
+    user: applyNullable(existing.user, input.user),
+    passwordEnv: applyNullable(existing.passwordEnv, input.passwordEnv),
+    ssl: applyNullable(existing.ssl, input.ssl),
+    sslmode: applyNullable(existing.sslmode, input.sslmode),
+    sslrootcert: applyNullable(existing.sslrootcert, input.sslrootcert),
+    description: applyNullable(existing.description, input.description),
+  })
 }
 
 /**
@@ -140,6 +187,39 @@ export class DataSourceRegistry extends Service {
     this.records.set(name, next)
     // A read-only-flag change must reach the next connection: drop the live
     // adapter (SQLite's OS-level read-only mode is fixed at open time).
+    const liveAdapter = this.live.get(name)
+    this.live.delete(name)
+    if (liveAdapter !== undefined) {
+      try {
+        await (await liveAdapter).close()
+      } catch (error) {
+        if (!isAlreadyClosedError(error)) throw error
+      }
+    }
+
+    return next
+  }
+
+  /**
+   * Patch a source's connection details, read-only flag, and/or description.
+   * `name` and `engine` are immutable (see `EditSourceInput`). Drops any live
+   * adapter so the next call reconnects under the new settings, same as
+   * `setReadOnly`.
+   */
+  async editSource(name: string, input: EditSourceInput): Promise<DataSourceRecord> {
+    await this.guardReady()
+    const next = await mutateSources((current) => {
+      const index = current.findIndex(existing => existing.name === name)
+      if (index === -1) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)
+      const existing = current[index]
+      if (existing === undefined) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)
+      const updated = applyEdit(existing, input)
+      const updatedList = [...current]
+      updatedList[index] = updated
+      return { next: updatedList, result: updated }
+    })
+
+    this.records.set(name, next)
     const liveAdapter = this.live.get(name)
     this.live.delete(name)
     if (liveAdapter !== undefined) {

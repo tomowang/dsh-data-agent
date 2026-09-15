@@ -40,8 +40,7 @@ const CSS = `
 .dsh-da-secondaryButton:disabled, .dsh-da-dangerButton:disabled { opacity: 0.4; cursor: default; }
 
 /* Row-action controls take the dense capsule size. */
-.dsh-da-rowActions .dsh-da-secondaryButton, .dsh-da-rowActions .dsh-da-dangerButton,
-.dsh-da-rowHead .dsh-da-dangerButton {
+.dsh-da-rowActions .dsh-da-secondaryButton, .dsh-da-rowActions .dsh-da-dangerButton {
   height: 28px; padding: 0 10px; border-radius: 14px; font-size: 12px; line-height: 18px;
 }
 
