@@ -1,10 +1,13 @@
 {
-  "name": "dsh-data-agent",
+  "name": "@tomowang/dsh-data-agent",
   "version": "0.1.0",
   "description": "DeepSeek Harness (dsh) plugin: manage database connections, browse and annotate schemas, and run SQL (with a read-only toggle and chart rendering), both conversationally and from the Web UI's Settings page.",
   "license": "MIT",
-  "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomowang/dsh-data-agent.git"
+  },
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
@@ -13,8 +16,12 @@
   "files": [
     "src",
     "lib",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "CHANGELOG.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -32,7 +39,8 @@
     "test": "vitest run",
     "dev": "pnpm run build:client && dsh plugin --profile web add .",
     "build:client": "node scripts/build-client.mjs",
-    "watch:client": "node scripts/build-client.mjs --watch"
+    "watch:client": "node scripts/build-client.mjs --watch",
+    "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
   "dependencies": {
     "@deepseek-ai/dsh-atomic-write": "0.0.1-rc.1",
@@ -51,6 +59,7 @@
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "esbuild": "^0.28.0",
+    "git-cliff": "^2.13.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.13.0",

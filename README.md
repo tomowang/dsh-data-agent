@@ -72,14 +72,14 @@ pnpm run dev
 # same as: pnpm run build:client && dsh plugin --profile web add .
 ```
 
-This is one-time (or re-run after changing `package.json` dependencies): pnpm `link:`s this directory into the profile's `node_modules` and appends `dsh-data-agent` to the profile's `dsh.profile.bundles`. Verify the layer, then boot:
+This is one-time (or re-run after changing `package.json` dependencies): pnpm `link:`s this directory into the profile's `node_modules` and appends `@tomowang/dsh-data-agent` to the profile's `dsh.profile.bundles`. Verify the layer, then boot:
 
 ```sh
-dsh --profile web --dump-config   # confirm the "# == dsh-data-agent" layer
+dsh --profile web --dump-config   # confirm the "# == @tomowang/dsh-data-agent" layer
 dsh --profile web
 ```
 
-Because it's a symlink, edits to `src/index.ts` (the Host half) are picked up the next time the `web` profile boots — no need to re-run `add`. Edits under `src/client/` need `pnpm run build:client` (or `watch:client`) first, since the browser loads the built `lib/client.js`, not the TypeScript source. Either way, **a running `dsh --profile web` process needs restarting** to pick up a changed plugin bundle — reloading the page alone is not enough (the plugin bundle list is fixed at process boot). `dsh plugin --profile web remove dsh-data-agent` undoes the install.
+Because it's a symlink, edits to `src/index.ts` (the Host half) are picked up the next time the `web` profile boots — no need to re-run `add`. Edits under `src/client/` need `pnpm run build:client` (or `watch:client`) first, since the browser loads the built `lib/client.js`, not the TypeScript source. Either way, **a running `dsh --profile web` process needs restarting** to pick up a changed plugin bundle — reloading the page alone is not enough (the plugin bundle list is fixed at process boot). `dsh plugin --profile web remove @tomowang/dsh-data-agent` undoes the install.
 
 For quick Host-only throwaway testing without touching any profile (skips the client bundle, so no Web UI cards/settings — use the linked-profile flow above for that), overlay the source file directly against a `deepseek-harness` source checkout:
 
