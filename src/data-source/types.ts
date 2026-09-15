@@ -19,8 +19,22 @@ export interface DataSourceRecord {
   readonly user?: string
   /** Name of an environment variable holding the password, never the value itself. */
   readonly passwordEnv?: string
-  /** MySQL/PostgreSQL only. */
+  /** MySQL only. PostgreSQL uses `sslmode` instead. */
   readonly ssl?: boolean
+  /**
+   * PostgreSQL only, mirroring libpq's `sslmode`. Defaults to `disable`.
+   * `allow`/`prefer` are negotiated: the adapter tries one encryption state
+   * and, only if that connection attempt fails outright, retries with the
+   * other — a real second connection, not a protocol-level fallback, so it
+   * costs a doubled failure latency when the failure is unrelated to
+   * encryption (e.g. a bad password). `verify-ca`/`verify-full` also check
+   * the server certificate's chain (`verify-full` additionally checks the
+   * hostname) — pair either with `sslrootcert` unless the certificate
+   * already chains to a CA Node trusts by default.
+   */
+  readonly sslmode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
+  /** PostgreSQL only. Path to a PEM-encoded CA certificate, read at connect time. */
+  readonly sslrootcert?: string
   readonly readOnly: boolean
   readonly description?: string
   readonly createdAt: string

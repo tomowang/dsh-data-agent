@@ -6,6 +6,7 @@ import { mergeSchemaComments } from '../data-source/schema-comments.ts'
 import { isTrustedOrigin } from './trust.ts'
 
 const ROUTE_PREFIX = '/dsh-data-agent/api'
+const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = []
@@ -74,6 +75,8 @@ export function applySettingsApiRoutes(ctx: Context): void {
       user: typeof body.user === 'string' ? body.user : undefined,
       passwordEnv: typeof body.passwordEnv === 'string' ? body.passwordEnv : undefined,
       ssl: typeof body.ssl === 'boolean' ? body.ssl : undefined,
+      sslmode: (SSL_MODES as readonly unknown[]).includes(body.sslmode) ? body.sslmode as typeof SSL_MODES[number] : undefined,
+      sslrootcert: typeof body.sslrootcert === 'string' ? body.sslrootcert : undefined,
       readOnly: typeof body.readOnly === 'boolean' ? body.readOnly : true,
       description: typeof body.description === 'string' ? body.description : undefined,
     })),

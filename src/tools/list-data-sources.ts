@@ -28,6 +28,8 @@ export function applyListDataSourcesTool(ctx: Context): void {
                 user: { type: 'string' },
                 passwordEnv: { type: 'string' },
                 ssl: { type: 'boolean' },
+                sslmode: { type: 'string', enum: ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] },
+                sslrootcert: { type: 'string' },
                 readOnly: { type: 'boolean' },
                 description: { type: 'string' },
                 createdAt: { type: 'string' },

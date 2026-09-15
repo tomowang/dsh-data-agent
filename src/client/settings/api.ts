@@ -31,6 +31,8 @@ export interface AddSourceInput {
   user?: string
   passwordEnv?: string
   ssl?: boolean
+  sslmode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
+  sslrootcert?: string
   readOnly: boolean
   description?: string
 }

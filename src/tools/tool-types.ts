@@ -101,6 +101,20 @@ export function optionalBoolean(record: Record<string, unknown>, key: string, to
   return value
 }
 
+export function optionalEnum<T extends string>(
+  record: Record<string, unknown>,
+  key: string,
+  allowed: readonly T[],
+  toolName: string,
+): T | undefined {
+  const value = record[key]
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+    throw new ToolInputError(`${toolName}: "${key}" must be one of ${allowed.join(', ')}`)
+  }
+  return value as T
+}
+
 export function requireEnum<T extends string>(
   record: Record<string, unknown>,
   key: string,

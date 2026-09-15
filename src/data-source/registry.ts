@@ -25,6 +25,8 @@ export interface AddSourceInput {
   readonly user?: string
   readonly passwordEnv?: string
   readonly ssl?: boolean
+  readonly sslmode?: DataSourceRecord['sslmode']
+  readonly sslrootcert?: string
   readonly readOnly: boolean
   readonly description?: string
 }

@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs'
 import type { Context } from '@deepseek-ai/cordis'
 import pg from 'pg'
 import { resolveSecret } from '../credential.ts'
 import { CONNECTION_FAILED_CODE, DataAgentError, TABLE_NOT_FOUND_CODE } from '../errors.ts'
+import { resolvePostgresSslAttempts } from './postgres-ssl.ts'
 import type {
   ColumnInfo,
   ConnectionTestResult,
@@ -46,25 +48,36 @@ export class PostgresAdapter implements DataSourceAdapter {
 
   async connect(): Promise<void> {
     const password = await resolveSecret(this.ctx, this.record.passwordEnv)
-    try {
+    const attempts = resolvePostgresSslAttempts(this.record, path => readFileSync(path, 'utf8'))
+
+    let lastError: unknown
+    for (const ssl of attempts) {
       const pool = new pg.Pool({
         host: this.record.host,
         port: this.record.port,
         user: this.record.user,
         password,
         database: this.record.database,
-        ssl: this.record.ssl === true ? { rejectUnauthorized: false } : undefined,
+        ssl,
         max: 3,
       })
-      await pool.query('SELECT 1')
-      this.poolInstance = pool
-    } catch (error) {
-      throw new DataAgentError(
-        `Failed to connect to PostgreSQL data source "${this.record.id}": ${(error as Error).message}`,
-        CONNECTION_FAILED_CODE,
-        { cause: error },
-      )
+      try {
+        await pool.query('SELECT 1')
+        this.poolInstance = pool
+        return
+      } catch (error) {
+        lastError = error
+        // `allow`/`prefer` only get here on a second, negotiated attempt —
+        // never leave the failed first pool's sockets open while retrying.
+        await pool.end().catch(() => {})
+      }
     }
+
+    throw new DataAgentError(
+      `Failed to connect to PostgreSQL data source "${this.record.id}": ${(lastError as Error).message}`,
+      CONNECTION_FAILED_CODE,
+      { cause: lastError },
+    )
   }
 
   async testConnection(): Promise<ConnectionTestResult> {

@@ -17,6 +17,7 @@ import * as api from './api.ts'
 ensureDshStyles()
 
 type Engine = 'mysql' | 'postgres' | 'sqlite'
+type SslMode = 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
 
 const emptyForm = {
   id: '',
@@ -27,6 +28,8 @@ const emptyForm = {
   user: '',
   passwordEnv: '',
   ssl: false,
+  sslmode: 'disable' as SslMode,
+  sslrootcert: '',
   readOnly: true,
   description: '',
 }
@@ -61,7 +64,9 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
         port: form.port.length > 0 ? Number(form.port) : undefined,
         user: form.user.length > 0 ? form.user : undefined,
         passwordEnv: form.passwordEnv.length > 0 ? form.passwordEnv : undefined,
-        ssl: form.ssl,
+        ssl: form.engine === 'mysql' ? form.ssl : undefined,
+        sslmode: form.engine === 'postgres' ? form.sslmode : undefined,
+        sslrootcert: form.engine === 'postgres' && form.sslrootcert.length > 0 ? form.sslrootcert : undefined,
         readOnly: form.readOnly,
         description: form.description.length > 0 ? form.description : undefined,
       })
@@ -126,13 +131,36 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
             </label>
           </>
         )}
+        {form.engine === 'postgres' && (
+          <label className="dsh-da-field">
+            <span className="dsh-da-fieldLabel">SSL mode</span>
+            <select
+              className="dsh-da-selectInput"
+              value={form.sslmode}
+              onChange={e => set('sslmode', e.target.value as SslMode)}
+            >
+              <option value="disable">disable</option>
+              <option value="allow">allow</option>
+              <option value="prefer">prefer</option>
+              <option value="require">require</option>
+              <option value="verify-ca">verify-ca</option>
+              <option value="verify-full">verify-full</option>
+            </select>
+          </label>
+        )}
+        {form.engine === 'postgres' && (form.sslmode === 'verify-ca' || form.sslmode === 'verify-full') && (
+          <label className="dsh-da-field">
+            <span className="dsh-da-fieldLabel">CA certificate path</span>
+            <Input placeholder="/path/to/ca.pem" value={form.sslrootcert} onChange={e => set('sslrootcert', e.target.value)} />
+          </label>
+        )}
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
           <Switch checked={form.readOnly} onChange={value => set('readOnly', value)} label="Read-only" />
           <span className="dsh-da-switchLabel">Read-only</span>
         </label>
-        {!isSqlite && (
+        {form.engine === 'mysql' && (
           <label className="dsh-da-switchRow">
             <Switch checked={form.ssl} onChange={value => set('ssl', value)} label="Use SSL" />
             <span className="dsh-da-switchLabel">SSL</span>
