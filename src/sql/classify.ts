@@ -13,6 +13,12 @@ const DIALECT: Record<Engine, string> = {
   mysql: 'mysql',
   postgres: 'postgresql',
   sqlite: 'sqlite',
+  // node-sql-parser has no dedicated ClickHouse dialect; 'postgresql' parses
+  // plain SELECT/INSERT/DDL closely enough to classify statement type, at the
+  // cost of rejecting ClickHouse-specific syntax it can't recognize (FORMAT
+  // clauses, some table functions) — same known limitation as SQLite PRAGMA
+  // below, not a silent misclassification.
+  clickhouse: 'postgresql',
 }
 
 export class SqlRejectedError extends Error {}

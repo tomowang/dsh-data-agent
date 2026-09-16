@@ -43,6 +43,7 @@
     "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
   "dependencies": {
+    "@clickhouse/client": "^1.23.1",
     "@deepseek-ai/dsh-atomic-write": "0.0.1-rc.1",
     "@deepseek-ai/dsh-credentials": "0.0.1-rc.1",
     "@deepseek-ai/dsh-home-paths": "0.0.1-rc.3",

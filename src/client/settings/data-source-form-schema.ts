@@ -82,6 +82,17 @@ export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
       },
     ],
   },
+  clickhouse: {
+    labelKey: 'engineClickhouse',
+    fields: [
+      { key: 'host', labelKey: 'fieldHost', type: 'text', placeholder: 'host' },
+      { key: 'port', labelKey: 'fieldPort', type: 'number', placeholder: 'port', defaultValue: '8123' },
+      { key: 'user', labelKey: 'fieldUser', type: 'text', placeholder: 'user' },
+      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
+      { key: 'database', labelKey: 'fieldDatabase', type: 'text', placeholder: 'database name', required: true },
+      { key: 'ssl', labelKey: 'fieldSsl', type: 'switch', defaultValue: false },
+    ],
+  },
 }
 
 /** Dropdown order for the Engine select — the schema record's own key order. */

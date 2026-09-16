@@ -9,7 +9,7 @@
 /** Locale keys this section's nav registration and panel render. */
 export type DataSourcesSettingsLocaleKey =
   | 'nav' | 'title' | 'dataSourcesSectionTitle' | 'intro' | 'loading' | 'empty'
-  | 'engineSqlite' | 'engineMysql' | 'enginePostgres'
+  | 'engineSqlite' | 'engineMysql' | 'enginePostgres' | 'engineClickhouse'
   | 'fieldFilePath' | 'fieldHost' | 'fieldPort' | 'fieldUser' | 'fieldPasswordEnv'
   | 'fieldDatabase' | 'fieldSsl' | 'fieldSslMode' | 'fieldCaCertPath'
   | 'fieldEngine' | 'fieldName' | 'fieldDescription'
@@ -32,6 +32,7 @@ export const en: Record<DataSourcesSettingsLocaleKey, string> = {
   engineSqlite: 'SQLite',
   engineMysql: 'MySQL',
   enginePostgres: 'PostgreSQL',
+  engineClickhouse: 'ClickHouse',
   fieldFilePath: 'File path',
   fieldHost: 'Host',
   fieldPort: 'Port',
@@ -84,6 +85,7 @@ export const zh: Record<DataSourcesSettingsLocaleKey, string> = {
   engineSqlite: 'SQLite',
   engineMysql: 'MySQL',
   enginePostgres: 'PostgreSQL',
+  engineClickhouse: 'ClickHouse',
   fieldFilePath: '文件路径',
   fieldHost: '服务器',
   fieldPort: '端口',

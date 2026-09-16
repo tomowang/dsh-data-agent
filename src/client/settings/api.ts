@@ -24,7 +24,7 @@ export function listSources(): Promise<{ sources: DataSourceRecord[] }> {
 
 export interface AddSourceInput {
   name: string
-  engine: 'mysql' | 'postgres' | 'sqlite'
+  engine: 'mysql' | 'postgres' | 'sqlite' | 'clickhouse'
   database: string
   host?: string
   port?: number

@@ -12,21 +12,22 @@ import {
 } from './tool-types.ts'
 
 const NAME = 'da_add_data_source'
-const ENGINES: readonly Engine[] = ['mysql', 'postgres', 'sqlite']
+const ENGINES: readonly Engine[] = ['mysql', 'postgres', 'sqlite', 'clickhouse']
 const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 
 export function applyAddDataSourceTool(ctx: Context): void {
   ctx.tools.register({
     name: NAME,
     description:
-      'Register a new database connection. For MySQL/PostgreSQL, provide host/port/database/user and, if the '
-      + 'database requires a password, `passwordEnv` — the NAME of an environment variable holding it (never the '
-      + 'password itself). For PostgreSQL, `sslmode` controls encryption/verification (mirrors libpq): `disable` '
+      'Register a new database connection. For MySQL/PostgreSQL/ClickHouse, provide host/port/database/user and, '
+      + 'if the database requires a password, `passwordEnv` — the NAME of an environment variable holding it (never '
+      + 'the password itself). For PostgreSQL, `sslmode` controls encryption/verification (mirrors libpq): `disable` '
       + '(default), `allow`/`prefer` (negotiated — try one encryption state, retry with the other if that whole '
       + 'connection attempt fails), `require` (encrypted, no verification), `verify-ca` (encrypted, verifies the '
       + "certificate chain), or `verify-full` (encrypted, verifies the chain and hostname). `verify-ca`/`verify-full` "
       + 'should be paired with `sslrootcert` unless the certificate already chains to a CA Node trusts by default. '
-      + 'For SQLite, `database` is the file path and the other connection fields are ignored. The connection is not '
+      + 'For SQLite, `database` is the file path and the other connection fields are ignored. For ClickHouse, `ssl` '
+      + 'selects `https://` for its HTTP interface (default port 8123, or 8443 with `ssl`). The connection is not '
       + 'tested here — use da_test_connection afterward.',
     parameters: {
       type: 'object',
@@ -34,13 +35,13 @@ export function applyAddDataSourceTool(ctx: Context): void {
       required: ['name', 'engine', 'database'],
       properties: {
         name: { type: 'string', description: 'A short unique name for this data source, e.g. "prod-mysql".' },
-        engine: { type: 'string', enum: [...ENGINES], description: 'One of: mysql, postgres, sqlite.' },
-        host: { type: 'string', description: 'MySQL/PostgreSQL only.' },
-        port: { type: 'number', description: 'MySQL/PostgreSQL only.' },
-        database: { type: 'string', description: 'MySQL/PostgreSQL: database name. SQLite: file path.' },
-        user: { type: 'string', description: 'MySQL/PostgreSQL only.' },
+        engine: { type: 'string', enum: [...ENGINES], description: 'One of: mysql, postgres, sqlite, clickhouse.' },
+        host: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse only.' },
+        port: { type: 'number', description: 'MySQL/PostgreSQL/ClickHouse only.' },
+        database: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse: database name. SQLite: file path.' },
+        user: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse only.' },
         passwordEnv: { type: 'string', description: 'Name of an environment variable holding the password.' },
-        ssl: { type: 'boolean', description: 'MySQL only. PostgreSQL uses `sslmode` instead.' },
+        ssl: { type: 'boolean', description: 'MySQL/ClickHouse only. PostgreSQL uses `sslmode` instead.' },
         sslmode: {
           type: 'string',
           enum: [...SSL_MODES],

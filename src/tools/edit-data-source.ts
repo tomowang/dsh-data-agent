@@ -29,12 +29,12 @@ export function applyEditDataSourceTool(ctx: Context): void {
       required: ['name'],
       properties: {
         name: { type: 'string', description: 'The data source to edit.' },
-        host: { type: 'string', description: 'MySQL/PostgreSQL only. Pass null to clear.' },
-        port: { type: 'number', description: 'MySQL/PostgreSQL only. Pass null to clear.' },
-        database: { type: 'string', description: 'MySQL/PostgreSQL: database name. SQLite: file path.' },
-        user: { type: 'string', description: 'MySQL/PostgreSQL only. Pass null to clear.' },
+        host: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse only. Pass null to clear.' },
+        port: { type: 'number', description: 'MySQL/PostgreSQL/ClickHouse only. Pass null to clear.' },
+        database: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse: database name. SQLite: file path.' },
+        user: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse only. Pass null to clear.' },
         passwordEnv: { type: 'string', description: 'Name of an environment variable holding the password. Pass null to clear.' },
-        ssl: { type: 'boolean', description: 'MySQL only. Pass null to clear.' },
+        ssl: { type: 'boolean', description: 'MySQL/ClickHouse only. Pass null to clear.' },
         sslmode: {
           type: 'string',
           enum: [...SSL_MODES],

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@clickhouse/client':
+        specifier: ^1.23.1
+        version: 1.23.1
       '@deepseek-ai/dsh-atomic-write':
         specifier: 0.0.1-rc.1
         version: 0.0.1-rc.1(@deepseek-ai/cordis@4.0.2)(@deepseek-ai/dsh-invariants@0.0.1-rc.5(@deepseek-ai/cordis@4.0.2))
@@ -77,6 +80,10 @@ importers:
         version: 5.0.1(@types/node@26.5.1)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.2)(tsx@4.23.13))
 
 packages:
+
+  '@clickhouse/client@1.23.1':
+    resolution: {integrity: sha512-vs3/Zc1dHvT171btW5nMoPsPCJ6QVJ5pp7obxzO5sjqwFx/jjz9wwCAqcFOdc2DhprugDBaVn+4dVY8hG3A9nw==}
+    engines: {node: '>=20'}
 
   '@deepseek-ai/cordis@4.0.2':
     resolution: {integrity: sha512-asOnXP1TzFSFQlHb1iegDZp0z/8WD1c7YNrwJR/Tx2bzNuMXfcekE/I67Iv6SQXeLB4csxqCngzQKANP7gdw0g==}
@@ -1247,6 +1254,8 @@ packages:
     engines: {node: '>=18'}
 
 snapshots:
+
+  '@clickhouse/client@1.23.1': {}
 
   '@deepseek-ai/cordis@4.0.2':
     dependencies:

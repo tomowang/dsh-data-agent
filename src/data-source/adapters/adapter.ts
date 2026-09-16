@@ -4,6 +4,7 @@ import type { DataSourceAdapter, DataSourceRecord, JsonScalar } from '../types.t
 import { SqliteAdapter } from './sqlite-adapter.ts'
 import { MysqlAdapter } from './mysql-adapter.ts'
 import { PostgresAdapter } from './postgres-adapter.ts'
+import { ClickhouseAdapter } from './clickhouse-adapter.ts'
 
 /** Coerce one driver-returned cell into a JSON-safe scalar. */
 export function toJsonScalar(value: unknown): JsonScalar {
@@ -23,7 +24,7 @@ export function toJsonRow(row: Record<string, unknown>): Record<string, JsonScal
   return result
 }
 
-/** One factory point for the three fixed engines — no seam/DI ceremony needed for a closed set. */
+/** One factory point for the four fixed engines — no seam/DI ceremony needed for a closed set. */
 export async function createAdapter(ctx: Context, record: DataSourceRecord): Promise<DataSourceAdapter> {
   switch (record.engine) {
     case 'sqlite':
@@ -32,6 +33,8 @@ export async function createAdapter(ctx: Context, record: DataSourceRecord): Pro
       return new MysqlAdapter(ctx, record)
     case 'postgres':
       return new PostgresAdapter(ctx, record)
+    case 'clickhouse':
+      return new ClickhouseAdapter(ctx, record)
     default: {
       const unreachable: never = record.engine
       throw new DataAgentError(`Unsupported engine: ${String(unreachable)}`, UNSUPPORTED_ENGINE_CODE)

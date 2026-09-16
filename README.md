@@ -4,7 +4,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 
 ## Features
 
-- **Data-source management** — register MySQL, PostgreSQL, or SQLite connections (`da_add_data_source`/`da_edit_data_source`/`da_remove_data_source`/`da_list_data_sources`), or manage them from Settings → Data Sources.
+- **Data-source management** — register MySQL, PostgreSQL, SQLite, or ClickHouse connections (`da_add_data_source`/`da_edit_data_source`/`da_remove_data_source`/`da_list_data_sources`), or manage them from Settings → Data Sources.
 - **Connection checks & schema browsing** — `da_test_connection` and `da_get_schema` (database overview or full column detail for one table), rendered as a Markdown table in chat and as a rich, expandable browser in both the chat card and the Settings schema viewer.
 - **Table/column comments** — `da_set_comment` from chat, or click-to-edit inline in the Settings schema viewer; both write to the same store.
 - **SQL execution with a read-only toggle** — `da_run_sql`, AST-verified (not string-matched) to reject write statements on a read-only source and to always reject statement-stacking. Toggle a source's read-only flag anytime with `da_set_read_only` (or the checkbox in Settings).
@@ -49,7 +49,7 @@ src/
     credential.ts         passwordEnv resolution (soft ctx.get('credentials'), else process.env)
     schema-comments.ts    merges comments.json into a raw schema result (shared by the tool and the Settings route)
     persistence/          sources.json / comments.json (atomic, cross-process-safe)
-    adapters/              one DataSourceAdapter implementation per engine (mysql2, pg, node:sqlite)
+    adapters/              one DataSourceAdapter implementation per engine (mysql2, pg, node:sqlite, @clickhouse/client)
   sql/classify.ts         node-sql-parser-based read-only + single-statement enforcement
   tools/                  the nine model-facing tools (one file each)
   settings-api/           raw ctx.webServer routes + Origin trust check backing the Settings panel
@@ -109,15 +109,16 @@ EOF
 
 See `deepseek-harness`'s [plugin tutorials](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/index.md) and [packaging guide](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md) for the full plugin/bundle model.
 
-## Testing against real MySQL/PostgreSQL
+## Testing against real MySQL/PostgreSQL/ClickHouse
 
-`tests/` cover SQLite in-process (no server needed) plus the SQL classifier, persistence, and registry logic. To exercise the MySQL/PostgreSQL adapters against a real server, register a source with `da_add_data_source` (or Settings → Data Sources) pointing at a reachable instance — a local Docker container works fine — and run `da_test_connection`/`da_get_schema`/`da_run_sql` from there.
+`tests/` cover SQLite in-process (no server needed) plus the SQL classifier, persistence, and registry logic. To exercise the MySQL/PostgreSQL/ClickHouse adapters against a real server, register a source with `da_add_data_source` (or Settings → Data Sources) pointing at a reachable instance — a local Docker container works fine — and run `da_test_connection`/`da_get_schema`/`da_run_sql` from there.
 
 ## Known v1 limitations
 
 - No update/upsert of connection details beyond the read-only toggle — remove and re-add for anything else (host, port, credentials, ...).
-- SQL placeholder syntax isn't unified across engines: `?` for MySQL/SQLite, `$1, $2, ...` for PostgreSQL.
-- `da_run_sql`'s safety check rejects any statement the parser can't classify (e.g. SQLite `PRAGMA`, some PostgreSQL `EXPLAIN` forms) rather than guessing — use `da_get_schema` for introspection instead of raw `PRAGMA`.
+- SQL placeholder syntax isn't unified across engines: `?` for MySQL/SQLite, `$1, $2, ...` for PostgreSQL, `{p1:Type}, {p2:Type}, ...` for ClickHouse (its HTTP interface only supports named parameters; `params` binds to them positionally as `p1`, `p2`, ...).
+- `da_run_sql`'s safety check rejects any statement the parser can't classify (e.g. SQLite `PRAGMA`, some PostgreSQL `EXPLAIN` forms, ClickHouse `FORMAT` clauses) rather than guessing — use `da_get_schema` for introspection instead of raw `PRAGMA`, and omit `FORMAT` (the ClickHouse adapter always requests `FORMAT JSON` itself).
+- `node-sql-parser` (the AST-based safety check) has no dedicated ClickHouse dialect; ClickHouse sources are classified against its PostgreSQL grammar, which is close enough for common SELECT/DDL/DML but will reject some ClickHouse-specific syntax as unparseable rather than misclassifying it.
 - The Settings panel's raw HTTP routes carry a hand-rolled `Origin` check rather than the harness's own `/api` trust fence (which is specific to `ctx.remote` calls) — adequate for the existing loopback-only threat model, not a claim of parity.
 
 ## Scripts

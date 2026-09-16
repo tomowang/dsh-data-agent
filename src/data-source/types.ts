@@ -1,5 +1,5 @@
-/** The three supported database engines. */
-export type Engine = 'mysql' | 'postgres' | 'sqlite'
+/** The four supported database engines. */
+export type Engine = 'mysql' | 'postgres' | 'sqlite' | 'clickhouse'
 
 /**
  * A registered connection, as persisted to `sources.json`. Never carries a
@@ -9,17 +9,17 @@ export type Engine = 'mysql' | 'postgres' | 'sqlite'
 export interface DataSourceRecord {
   readonly name: string
   readonly engine: Engine
-  /** MySQL/PostgreSQL only. */
+  /** MySQL/PostgreSQL/ClickHouse only. */
   readonly host?: string
-  /** MySQL/PostgreSQL only. */
+  /** MySQL/PostgreSQL/ClickHouse only. */
   readonly port?: number
-  /** MySQL/PostgreSQL: the database name. SQLite: the file path. */
+  /** MySQL/PostgreSQL/ClickHouse: the database name. SQLite: the file path. */
   readonly database: string
-  /** MySQL/PostgreSQL only. */
+  /** MySQL/PostgreSQL/ClickHouse only. */
   readonly user?: string
   /** Name of an environment variable holding the password, never the value itself. */
   readonly passwordEnv?: string
-  /** MySQL only. PostgreSQL uses `sslmode` instead. */
+  /** MySQL/ClickHouse only (selects `https://` for ClickHouse's HTTP interface). PostgreSQL uses `sslmode` instead. */
   readonly ssl?: boolean
   /**
    * PostgreSQL only, mirroring libpq's `sslmode`. Defaults to `disable`.

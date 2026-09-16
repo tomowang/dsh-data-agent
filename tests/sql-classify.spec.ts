@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertSqlAllowed } from '../src/sql/classify.ts'
 
 describe('assertSqlAllowed', () => {
-  const engines = ['mysql', 'postgres', 'sqlite'] as const
+  const engines = ['mysql', 'postgres', 'sqlite', 'clickhouse'] as const
 
   for (const engine of engines) {
     it(`allows a plain SELECT on a read-only ${engine} source`, () => {

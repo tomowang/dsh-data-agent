@@ -89,7 +89,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     path: `${ROUTE_PREFIX}/add-source`,
     handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.addSource({
       name: String(body.name ?? ''),
-      engine: body.engine as 'mysql' | 'postgres' | 'sqlite',
+      engine: body.engine as 'mysql' | 'postgres' | 'sqlite' | 'clickhouse',
       database: String(body.database ?? ''),
       host: typeof body.host === 'string' ? body.host : undefined,
       port: typeof body.port === 'number' ? body.port : undefined,
