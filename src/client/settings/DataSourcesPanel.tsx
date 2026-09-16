@@ -283,6 +283,7 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
   const [testing, setTesting] = React.useState(false)
   const [schema, setSchema] = React.useState<SchemaResult | undefined>(undefined)
   const [schemaOpen, setSchemaOpen] = React.useState(false)
+  const [schemaLoading, setSchemaLoading] = React.useState(false)
   const [schemaError, setSchemaError] = React.useState<string | undefined>(undefined)
   const [loadingTables, setLoadingTables] = React.useState<Set<string>>(new Set())
   const [editing, setEditing] = React.useState(false)
@@ -312,12 +313,16 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
       setSchemaOpen(false)
       return
     }
-    setSchemaOpen(true)
     setSchemaError(undefined)
+    setSchemaLoading(true)
     try {
       setSchema(await api.getSchema(source.name))
+      setSchemaOpen(true)
     } catch (err) {
       setSchemaError((err as Error).message)
+      setSchemaOpen(true)
+    } finally {
+      setSchemaLoading(false)
     }
   }
 
@@ -410,9 +415,9 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
                   <IconRefreshOutline16 size={14} />
                   {testing ? t('testing') : t('test')}
                 </button>
-                <button type="button" className="dsh-da-secondaryButton" onClick={() => void toggleSchema()}>
+                <button type="button" className="dsh-da-secondaryButton" disabled={schemaLoading} onClick={() => void toggleSchema()}>
                   <IconDatabaseOutline16 size={14} />
-                  {schemaOpen ? t('hideSchema') : t('viewSchema')}
+                  {schemaLoading ? t('loading') : schemaOpen ? t('hideSchema') : t('viewSchema')}
                 </button>
               </span>
             </div>
