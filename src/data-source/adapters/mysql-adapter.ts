@@ -114,8 +114,8 @@ export class MysqlAdapter implements DataSourceAdapter {
       'SELECT TABLE_NAME, COUNT(*) AS columnCount FROM information_schema.columns WHERE TABLE_SCHEMA = ? GROUP BY TABLE_NAME',
       [schemaName],
     )
-    const columnCounts = new Map((columnCountRows as unknown as { TABLE_NAME: string, columnCount: number }[])
-      .map(row => [row.TABLE_NAME, row.columnCount]))
+    const columnCounts = new Map((columnCountRows as unknown as { TABLE_NAME: string, columnCount: string }[])
+      .map(row => [row.TABLE_NAME, Number(row.columnCount)]))
 
     const tables: TableInfo[] = limited.map(row => ({
       name: row.TABLE_NAME,
