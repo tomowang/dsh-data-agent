@@ -1,4 +1,5 @@
 import * as React from 'react'
+import Github from '@thesvg/react/github'
 import {
   IconChevronDownOutline14,
   IconDatabaseOutline16,
@@ -456,7 +457,29 @@ export function DataSourcesPanel({ t }: { t: T }): React.ReactElement {
 
   return (
     <div className="dsh-da-section">
-      <h2 className="dsh-da-title">{t('title')}</h2>
+      <div className="dsh-da-titleBar">
+        <h2 className="dsh-da-title">{t('title')}</h2>
+        <span className="dsh-da-titleMeta">
+          <a
+            className="dsh-da-githubLink"
+            href={__DSH_DATA_AGENT_REPO_URL__}
+            target="_blank"
+            rel="noreferrer"
+            title={t('viewOnGithub')}
+            aria-label={t('viewOnGithub')}
+          >
+            <Github variant="mono" width={16} height={16} />
+          </a>
+          <a
+            className="dsh-da-versionLabel"
+            href={`${__DSH_DATA_AGENT_REPO_URL__}/releases/tag/v${__DSH_DATA_AGENT_VERSION__}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            v{__DSH_DATA_AGENT_VERSION__}
+          </a>
+        </span>
+      </div>
       <h3 className="dsh-da-subtitle">{t('dataSourcesSectionTitle')}</h3>
       <p className="dsh-da-intro">{t('intro')}</p>
       {error !== undefined && <p className="dsh-da-error">{error}</p>}

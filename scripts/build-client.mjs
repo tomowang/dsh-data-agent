@@ -7,9 +7,13 @@
 // and packages/client/tsdown.client.ts in the deepseek-harness checkout for the
 // contract this script reproduces by hand (that helper is monorepo-internal
 // and not published for out-of-tree plugins to import).
+import { readFileSync } from 'node:fs'
 import * as esbuild from 'esbuild'
 
 const PACKAGE_ID = '@tomowang/dsh-data-agent'
+
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+const REPO_URL = pkg.repository.url.replace(/^git\+/, '').replace(/\.git$/, '')
 
 const PLATFORM_EXTERNALS = [
   'react',
@@ -36,6 +40,10 @@ const options = {
   jsx: 'automatic',
   logLevel: 'info',
   external: PLATFORM_EXTERNALS,
+  define: {
+    __DSH_DATA_AGENT_VERSION__: JSON.stringify(pkg.version),
+    __DSH_DATA_AGENT_REPO_URL__: JSON.stringify(REPO_URL),
+  },
   banner: {
     js: `window.__ModuleLoader__.load({ id: ${JSON.stringify(PACKAGE_ID)}, factory: (require) => {\nvar module = { exports: {} }; var exports = module.exports;`,
   },

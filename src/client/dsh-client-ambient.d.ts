@@ -11,6 +11,19 @@
 // to satisfy the TypeScript compiler for our own source, not to ship code.
 import type {} from '@deepseek-ai/cordis'
 
+/**
+ * Package version and repository URL, inlined at build time from
+ * `package.json` via esbuild `define` (see scripts/build-client.mjs) — the
+ * browser bundle has no `fs` access to read `package.json` itself. Declared
+ * inside `declare global` because this file is a module (it has a top-level
+ * `import`), and a bare top-level `declare const` in a module file is
+ * module-scoped, not ambient-global.
+ */
+declare global {
+  const __DSH_DATA_AGENT_VERSION__: string
+  const __DSH_DATA_AGENT_REPO_URL__: string
+}
+
 declare module '@deepseek-ai/cordis' {
   interface SlotChildDescriptor {
     kind: 'single' | 'list'

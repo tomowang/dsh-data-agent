@@ -19,7 +19,7 @@ export type DataSourcesSettingsLocaleKey =
   | 'readOnly' | 'readOnlyFor' | 'readWrite'
   | 'cancel' | 'add' | 'adding' | 'save' | 'saving'
   | 'edit' | 'remove' | 'test' | 'testing' | 'viewSchema' | 'hideSchema'
-  | 'connectedIn' | 'failed' | 'optional'
+  | 'connectedIn' | 'failed' | 'optional' | 'viewOnGithub'
 
 /** English copy. */
 export const en: Record<DataSourcesSettingsLocaleKey, string> = {
@@ -70,6 +70,7 @@ export const en: Record<DataSourcesSettingsLocaleKey, string> = {
   connectedIn: 'Connected in {ms}ms.',
   failed: 'Failed: {message}',
   optional: 'Optional',
+  viewOnGithub: 'View on GitHub',
 }
 
 /** Simplified Chinese copy. */
@@ -121,4 +122,5 @@ export const zh: Record<DataSourcesSettingsLocaleKey, string> = {
   connectedIn: '已连接，用时 {ms}ms。',
   failed: '失败：{message}',
   optional: '可选',
+  viewOnGithub: '在 GitHub 上查看',
 }

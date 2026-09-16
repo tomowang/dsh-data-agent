@@ -16,6 +16,12 @@ const STYLE_TAG_ID = 'dsh-data-agent-styles'
 const CSS = `
 .dsh-da-section { display: flex; flex-direction: column; gap: 12px; max-width: 720px; color: var(--dsw-alias-label-primary); }
 .dsh-da-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: var(--dsw-alias-label-primary); }
+.dsh-da-titleBar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dsh-da-titleMeta { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.dsh-da-githubLink { display: inline-flex; color: var(--dsw-alias-label-tertiary); }
+.dsh-da-githubLink:hover { color: var(--dsw-alias-label-primary); }
+.dsh-da-versionLabel { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); font-family: var(--ds-font-family-code); text-decoration: none; }
+.dsh-da-versionLabel:hover { color: var(--dsw-alias-label-primary); text-decoration: underline; }
 .dsh-da-subtitle { margin: 0; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-secondary); }
 .dsh-da-intro { margin: 0; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-tertiary); }
 
