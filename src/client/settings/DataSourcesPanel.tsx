@@ -285,13 +285,22 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
   const [schemaError, setSchemaError] = React.useState<string | undefined>(undefined)
   const [loadingTables, setLoadingTables] = React.useState<Set<string>>(new Set())
   const [editing, setEditing] = React.useState(false)
+  const testResultTimer = React.useRef<ReturnType<typeof setTimeout>>()
+
+  React.useEffect(() => () => clearTimeout(testResultTimer.current), [])
+
+  const showTestResult = (result: ConnectionTestResult): void => {
+    clearTimeout(testResultTimer.current)
+    setTestResult(result)
+    testResultTimer.current = setTimeout(() => setTestResult(undefined), 3000)
+  }
 
   const test = async (): Promise<void> => {
     setTesting(true)
     try {
-      setTestResult(await api.testConnection(source.name))
+      showTestResult(await api.testConnection(source.name))
     } catch (err) {
-      setTestResult({ ok: false, error: { code: 'request_failed', message: (err as Error).message } })
+      showTestResult({ ok: false, error: { code: 'request_failed', message: (err as Error).message } })
     } finally {
       setTesting(false)
     }
