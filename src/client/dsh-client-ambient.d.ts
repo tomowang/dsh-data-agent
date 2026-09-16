@@ -39,7 +39,15 @@ declare module '@deepseek-ai/cordis' {
     inject(slotName: string, factory: () => (() => void) | void): void
   }
 
+  interface LocaleService {
+    /** Bind a namespace to a translate function that reads the active locale at call time. */
+    bind(ns: string): (key: string, params?: Record<string, unknown>) => string
+    /** Register this namespace's per-locale dictionaries (built-in locale ids only); returns a disposer. */
+    register(ns: string, dicts: Record<string, Record<string, string>>): () => void
+  }
+
   interface Context {
     slots: SlotsService
+    locale: LocaleService
   }
 }

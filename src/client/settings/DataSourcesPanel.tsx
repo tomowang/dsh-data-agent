@@ -25,35 +25,40 @@ import {
   type FieldValues,
   visibleFields,
 } from './data-source-form-schema.ts'
+import type { DataSourcesSettingsLocaleKey } from './locales.ts'
 
 ensureDshStyles()
 
-function FormField({ field, value, onChange }: {
+/** Translate a dictionary key of this section's own namespace (framework-injected standard seat). */
+type T = (key: DataSourcesSettingsLocaleKey, params?: Record<string, unknown>) => string
+
+function FormField({ field, value, onChange, t }: {
   field: FieldSpec
   value: string | boolean | undefined
   onChange: (value: string | boolean) => void
+  t: T
 }): React.ReactElement {
   if (field.type === 'switch') {
     return (
       <label className="dsh-da-switchRow">
-        <Switch checked={value === true} onChange={onChange} label={field.label} />
-        <span className="dsh-da-switchLabel">{field.label}</span>
+        <Switch checked={value === true} onChange={onChange} label={t(field.labelKey)} />
+        <span className="dsh-da-switchLabel">{t(field.labelKey)}</span>
       </label>
     )
   }
   if (field.type === 'select') {
     return (
       <label className="dsh-da-field">
-        <span className="dsh-da-fieldLabel">{field.label}</span>
+        <span className="dsh-da-fieldLabel">{t(field.labelKey)}</span>
         <select className="dsh-da-selectInput" value={String(value ?? '')} onChange={e => onChange(e.target.value)}>
-          {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          {field.options?.map(option => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
         </select>
       </label>
     )
   }
   return (
     <label className="dsh-da-field">
-      <span className="dsh-da-fieldLabel">{field.label}</span>
+      <span className="dsh-da-fieldLabel">{t(field.labelKey)}</span>
       <Input
         placeholder={field.placeholder}
         value={String(value ?? '')}
@@ -64,7 +69,7 @@ function FormField({ field, value, onChange }: {
   )
 }
 
-function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement {
+function AddSourceForm({ onAdded, t }: { onAdded: () => void, t: T }): React.ReactElement {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState('')
   const [engine, setEngine] = React.useState<Engine>('sqlite')
@@ -78,7 +83,7 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
     return (
       <button type="button" className="dsh-da-addButton" onClick={() => setOpen(true)}>
         <IconPlusOutline16 size={14} />
-        Add data source
+        {t('addDataSource')}
       </button>
     )
   }
@@ -116,52 +121,53 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }): React.ReactElement
 
   return (
     <form className="dsh-da-editor" onSubmit={event => void submit(event)}>
-      <p className="dsh-da-editorTitle">New data source</p>
+      <p className="dsh-da-editorTitle">{t('newDataSource')}</p>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">Engine</span>
+          <span className="dsh-da-fieldLabel">{t('fieldEngine')}</span>
           <select className="dsh-da-selectInput" value={engine} onChange={e => changeEngine(e.target.value as Engine)}>
-            {ENGINE_ORDER.map(value => <option key={value} value={value}>{ENGINE_FORM_SCHEMAS[value].label}</option>)}
+            {ENGINE_ORDER.map(value => <option key={value} value={value}>{t(ENGINE_FORM_SCHEMAS[value].labelKey)}</option>)}
           </select>
         </label>
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">Name</span>
+          <span className="dsh-da-fieldLabel">{t('fieldName')}</span>
           <Input placeholder="e.g. prod-mysql" value={name} onChange={e => setName(e.target.value)} required />
         </label>
         {textFields.map(field => (
-          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} t={t} />
         ))}
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">Description</span>
-          <Input placeholder="Optional" value={description} onChange={e => setDescription(e.target.value)} />
+          <span className="dsh-da-fieldLabel">{t('fieldDescription')}</span>
+          <Input placeholder={t('optional')} value={description} onChange={e => setDescription(e.target.value)} />
         </label>
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
-          <Switch checked={readOnly} onChange={setReadOnly} label="Read-only" />
-          <span className="dsh-da-switchLabel">Read-only</span>
+          <Switch checked={readOnly} onChange={setReadOnly} label={t('readOnly')} />
+          <span className="dsh-da-switchLabel">{t('readOnly')}</span>
         </label>
         {switchFields.map(field => (
-          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} t={t} />
         ))}
       </div>
       {error !== undefined && <p className="dsh-da-error">{error}</p>}
       <div className="dsh-da-editorActions">
         <button type="button" className="dsh-da-secondaryButton" disabled={saving} onClick={() => { setOpen(false); setError(undefined) }}>
-          Cancel
+          {t('cancel')}
         </button>
         <button type="submit" className="dsh-da-primaryButton" disabled={saving}>
-          {saving ? 'Adding…' : 'Add'}
+          {saving ? t('adding') : t('add')}
         </button>
       </div>
     </form>
   )
 }
 
-function EditSourceForm({ source, onSaved, onCancel }: {
+function EditSourceForm({ source, onSaved, onCancel, t }: {
   source: DataSourceRecord
   onSaved: () => void
   onCancel: () => void
+  t: T
 }): React.ReactElement {
   const [values, setValues] = React.useState<FieldValues>(() => fieldValuesFromRecord(source.engine, source))
   const [readOnly, setReadOnly] = React.useState(source.readOnly)
@@ -191,56 +197,56 @@ function EditSourceForm({ source, onSaved, onCancel }: {
 
   return (
     <form className="dsh-da-editor" onSubmit={event => void submit(event)}>
-      <p className="dsh-da-editorTitle">{`Edit ${source.name}`}</p>
+      <p className="dsh-da-editorTitle">{t('editSourceTitle', { name: source.name })}</p>
       <div className="dsh-da-fieldGrid">
         {textFields.map(field => (
-          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} t={t} />
         ))}
         <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">Description</span>
-          <Input placeholder="Optional" value={description} onChange={e => setDescription(e.target.value)} />
+          <span className="dsh-da-fieldLabel">{t('fieldDescription')}</span>
+          <Input placeholder={t('optional')} value={description} onChange={e => setDescription(e.target.value)} />
         </label>
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
-          <Switch checked={readOnly} onChange={setReadOnly} label="Read-only" />
-          <span className="dsh-da-switchLabel">Read-only</span>
+          <Switch checked={readOnly} onChange={setReadOnly} label={t('readOnly')} />
+          <span className="dsh-da-switchLabel">{t('readOnly')}</span>
         </label>
         {switchFields.map(field => (
-          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} />
+          <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} t={t} />
         ))}
       </div>
       {error !== undefined && <p className="dsh-da-error">{error}</p>}
       <div className="dsh-da-editorActions">
         <button type="button" className="dsh-da-secondaryButton" disabled={saving} onClick={onCancel}>
-          Cancel
+          {t('cancel')}
         </button>
         <button type="submit" className="dsh-da-primaryButton" disabled={saving}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? t('saving') : t('save')}
         </button>
       </div>
     </form>
   )
 }
 
-function connectionStatusLine(result: ConnectionTestResult): React.ReactElement {
+function connectionStatusLine(result: ConnectionTestResult, t: T): React.ReactElement {
   if (result.ok) {
     return (
       <div className="dsh-da-statusLine dsh-da-statusOk">
         <StateDot state="done" />
-        <span>{`Connected in ${result.latencyMs ?? '?'}ms.`}</span>
+        <span>{t('connectedIn', { ms: result.latencyMs ?? '?' })}</span>
       </div>
     )
   }
   return (
     <div className="dsh-da-statusLine dsh-da-statusErr">
       <StateDot state="error" />
-      <span>{`Failed: ${result.error?.message}`}</span>
+      <span>{t('failed', { message: result.error?.message })}</span>
     </div>
   )
 }
 
-function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged: () => void }): React.ReactElement {
+function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChanged: () => void, t: T }): React.ReactElement {
   const [testResult, setTestResult] = React.useState<ConnectionTestResult | undefined>(undefined)
   const [testing, setTesting] = React.useState(false)
   const [schema, setSchema] = React.useState<SchemaResult | undefined>(undefined)
@@ -323,16 +329,16 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
         <span className="dsh-da-rowIdentity">
           <span className="dsh-da-rowName">{source.name}</span>
           <Tag tone="neutral">{source.engine}</Tag>
-          {!source.readOnly && <Tag tone="warning">read-write</Tag>}
+          {!source.readOnly && <Tag tone="warning">{t('readWrite')}</Tag>}
         </span>
         <span className="dsh-da-rowActions">
           <button type="button" className="dsh-da-secondaryButton" onClick={() => setEditing(true)}>
             <IconEditOutline16 size={14} />
-            Edit
+            {t('edit')}
           </button>
           <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
             <IconTrashOutline16 size={14} />
-            Remove
+            {t('remove')}
           </button>
         </span>
       </div>
@@ -342,6 +348,7 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
             source={source}
             onSaved={() => { setEditing(false); onChanged() }}
             onCancel={() => setEditing(false)}
+            t={t}
           />
         )
         : (
@@ -352,23 +359,23 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
                 <Switch
                   checked={source.readOnly}
                   onChange={value => void api.setReadOnly(source.name, value).then(onChanged)}
-                  label={`Read-only for ${source.name}`}
-                  title="Read-only"
+                  label={t('readOnlyFor', { name: source.name })}
+                  title={t('readOnly')}
                 />
-                <span className="dsh-da-switchLabel">Read-only</span>
+                <span className="dsh-da-switchLabel">{t('readOnly')}</span>
               </label>
               <span className="dsh-da-rowActions">
                 <button type="button" className="dsh-da-secondaryButton" disabled={testing} onClick={() => void test()}>
                   <IconRefreshOutline16 size={14} />
-                  {testing ? 'Testing…' : 'Test'}
+                  {testing ? t('testing') : t('test')}
                 </button>
                 <button type="button" className="dsh-da-secondaryButton" onClick={() => void toggleSchema()}>
                   <IconDatabaseOutline16 size={14} />
-                  {schemaOpen ? 'Hide schema' : 'View schema'}
+                  {schemaOpen ? t('hideSchema') : t('viewSchema')}
                 </button>
               </span>
             </div>
-            {testResult !== undefined && connectionStatusLine(testResult)}
+            {testResult !== undefined && connectionStatusLine(testResult, t)}
             {schemaOpen && (
               <div className="dsh-da-schemaSection">
                 {schemaError !== undefined && <p className="dsh-da-error">{schemaError}</p>}
@@ -388,8 +395,13 @@ function SourceRow({ source, onChanged }: { source: DataSourceRecord, onChanged:
   )
 }
 
-/** Content panel for the `data-sources` settings.section entry (settings/index.ts). */
-export function DataSourcesPanel(): React.ReactElement {
+/**
+ * Content panel for the `data-sources` settings.section entry (settings/index.ts).
+ * `t` is the framework-injected standard seat: the section registration
+ * declares `locale: NS`, so the renderer binds it to this namespace's
+ * dictionary and re-invokes on locale change.
+ */
+export function DataSourcesPanel({ t }: { t: T }): React.ReactElement {
   const [sources, setSources] = React.useState<DataSourceRecord[] | undefined>(undefined)
   const [error, setError] = React.useState<string | undefined>(undefined)
 
@@ -404,17 +416,18 @@ export function DataSourcesPanel(): React.ReactElement {
 
   return (
     <div className="dsh-da-section">
-      <h2 className="dsh-da-title">Data Sources</h2>
-      <p className="dsh-da-intro">Register MySQL, PostgreSQL, or SQLite connections for chat tools to query.</p>
+      <h2 className="dsh-da-title">{t('title')}</h2>
+      <h3 className="dsh-da-subtitle">{t('dataSourcesSectionTitle')}</h3>
+      <p className="dsh-da-intro">{t('intro')}</p>
       {error !== undefined && <p className="dsh-da-error">{error}</p>}
       <ul className="dsh-da-rows">
         {sources === undefined
-          ? <p className="dsh-da-loading">Loading…</p>
+          ? <p className="dsh-da-loading">{t('loading')}</p>
           : sources.length === 0
-            ? <p className="dsh-da-empty">No data sources registered yet.</p>
-            : sources.map(source => <SourceRow key={source.name} source={source} onChanged={refresh} />)}
+            ? <p className="dsh-da-empty">{t('empty')}</p>
+            : sources.map(source => <SourceRow key={source.name} source={source} onChanged={refresh} t={t} />)}
       </ul>
-      <AddSourceForm onAdded={refresh} />
+      <AddSourceForm onAdded={refresh} t={t} />
     </div>
   )
 }

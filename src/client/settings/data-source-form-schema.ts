@@ -1,5 +1,6 @@
 import type { DataSourceRecord, Engine } from '../../data-source/types.ts'
 import type { AddSourceInput, EditSourceInput } from './api.ts'
+import type { DataSourcesSettingsLocaleKey } from './locales.ts'
 
 /**
  * Adapter-style description of one data source type's "add source" form.
@@ -11,13 +12,13 @@ export type FieldType = 'text' | 'number' | 'select' | 'switch'
 
 export interface SelectOption {
   readonly value: string
-  readonly label: string
+  readonly labelKey: DataSourcesSettingsLocaleKey
 }
 
 export interface FieldSpec {
   /** Must match the corresponding key on `AddSourceInput`. */
   readonly key: 'database' | 'host' | 'port' | 'user' | 'passwordEnv' | 'ssl' | 'sslmode' | 'sslrootcert'
-  readonly label: string
+  readonly labelKey: DataSourcesSettingsLocaleKey
   readonly type: FieldType
   readonly placeholder?: string
   readonly required?: boolean
@@ -31,50 +32,50 @@ export interface FieldSpec {
 export type FieldValues = Record<string, string | boolean>
 
 export interface EngineFormSchema {
-  readonly label: string
+  readonly labelKey: DataSourcesSettingsLocaleKey
   readonly fields: readonly FieldSpec[]
 }
 
 const SSL_MODE_OPTIONS: readonly SelectOption[] = [
-  { value: 'disable', label: 'disable' },
-  { value: 'allow', label: 'allow' },
-  { value: 'prefer', label: 'prefer' },
-  { value: 'require', label: 'require' },
-  { value: 'verify-ca', label: 'verify-ca' },
-  { value: 'verify-full', label: 'verify-full' },
+  { value: 'disable', labelKey: 'sslModeDisable' },
+  { value: 'allow', labelKey: 'sslModeAllow' },
+  { value: 'prefer', labelKey: 'sslModePrefer' },
+  { value: 'require', labelKey: 'sslModeRequire' },
+  { value: 'verify-ca', labelKey: 'sslModeVerifyCa' },
+  { value: 'verify-full', labelKey: 'sslModeVerifyFull' },
 ]
 
 /** One schema per `Engine` member — the `Record` keeps this exhaustive as engines are added. */
 export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
   sqlite: {
-    label: 'sqlite',
+    labelKey: 'engineSqlite',
     fields: [
-      { key: 'database', label: 'File path', type: 'text', placeholder: '/path/to/file.db', required: true },
+      { key: 'database', labelKey: 'fieldFilePath', type: 'text', placeholder: '/path/to/file.db', required: true },
     ],
   },
   mysql: {
-    label: 'mysql',
+    labelKey: 'engineMysql',
     fields: [
-      { key: 'host', label: 'Host', type: 'text', placeholder: 'host' },
-      { key: 'port', label: 'Port', type: 'number', placeholder: 'port', defaultValue: '3306' },
-      { key: 'user', label: 'User', type: 'text', placeholder: 'user' },
-      { key: 'passwordEnv', label: 'Password env var', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
-      { key: 'database', label: 'Database', type: 'text', placeholder: 'database name', required: true },
-      { key: 'ssl', label: 'SSL', type: 'switch', defaultValue: false },
+      { key: 'host', labelKey: 'fieldHost', type: 'text', placeholder: 'host' },
+      { key: 'port', labelKey: 'fieldPort', type: 'number', placeholder: 'port', defaultValue: '3306' },
+      { key: 'user', labelKey: 'fieldUser', type: 'text', placeholder: 'user' },
+      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
+      { key: 'database', labelKey: 'fieldDatabase', type: 'text', placeholder: 'database name', required: true },
+      { key: 'ssl', labelKey: 'fieldSsl', type: 'switch', defaultValue: false },
     ],
   },
   postgres: {
-    label: 'postgres',
+    labelKey: 'enginePostgres',
     fields: [
-      { key: 'host', label: 'Host', type: 'text', placeholder: 'host' },
-      { key: 'port', label: 'Port', type: 'number', placeholder: 'port', defaultValue: '5432' },
-      { key: 'user', label: 'User', type: 'text', placeholder: 'user' },
-      { key: 'passwordEnv', label: 'Password env var', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
-      { key: 'database', label: 'Database', type: 'text', placeholder: 'database name', required: true },
-      { key: 'sslmode', label: 'SSL mode', type: 'select', defaultValue: 'disable', options: SSL_MODE_OPTIONS },
+      { key: 'host', labelKey: 'fieldHost', type: 'text', placeholder: 'host' },
+      { key: 'port', labelKey: 'fieldPort', type: 'number', placeholder: 'port', defaultValue: '5432' },
+      { key: 'user', labelKey: 'fieldUser', type: 'text', placeholder: 'user' },
+      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
+      { key: 'database', labelKey: 'fieldDatabase', type: 'text', placeholder: 'database name', required: true },
+      { key: 'sslmode', labelKey: 'fieldSslMode', type: 'select', defaultValue: 'disable', options: SSL_MODE_OPTIONS },
       {
         key: 'sslrootcert',
-        label: 'CA certificate path',
+        labelKey: 'fieldCaCertPath',
         type: 'text',
         placeholder: '/path/to/ca.pem',
         visibleWhen: values => values.sslmode === 'verify-ca' || values.sslmode === 'verify-full',
