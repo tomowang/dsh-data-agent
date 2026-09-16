@@ -165,13 +165,15 @@ function AddSourceForm({ onAdded, t }: { onAdded: () => void, t: T }): React.Rea
           <span className="dsh-da-fieldLabel">{t('fieldName')}</span>
           <Input placeholder="e.g. prod-mysql" value={name} onChange={e => setName(e.target.value)} required />
         </label>
+      </div>
+      <label className="dsh-da-field">
+        <span className="dsh-da-fieldLabel">{t('fieldDescription')}</span>
+        <Input placeholder={t('optional')} value={description} onChange={e => setDescription(e.target.value)} />
+      </label>
+      <div className="dsh-da-fieldGrid">
         {textFields.map(field => (
           <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} t={t} />
         ))}
-        <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">{t('fieldDescription')}</span>
-          <Input placeholder={t('optional')} value={description} onChange={e => setDescription(e.target.value)} />
-        </label>
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
@@ -230,14 +232,14 @@ function EditSourceForm({ source, onSaved, onCancel, t }: {
   return (
     <form className="dsh-da-editor" onSubmit={event => void submit(event)}>
       <p className="dsh-da-editorTitle">{t('editSourceTitle', { name: source.name })}</p>
+      <label className="dsh-da-field">
+        <span className="dsh-da-fieldLabel">{t('fieldDescription')}</span>
+        <Input placeholder={t('optional')} value={description} onChange={e => setDescription(e.target.value)} />
+      </label>
       <div className="dsh-da-fieldGrid">
         {textFields.map(field => (
           <FormField key={field.key} field={field} value={values[field.key]} onChange={value => setField(field.key, value)} t={t} />
         ))}
-        <label className="dsh-da-field">
-          <span className="dsh-da-fieldLabel">{t('fieldDescription')}</span>
-          <Input placeholder={t('optional')} value={description} onChange={e => setDescription(e.target.value)} />
-        </label>
       </div>
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-switchRow">
