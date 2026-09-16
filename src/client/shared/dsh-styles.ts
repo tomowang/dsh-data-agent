@@ -25,6 +25,7 @@ const CSS = `
 .dsh-da-rowCard { border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
 .dsh-da-rowHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .dsh-da-rowIdentity { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.dsh-da-engineIcon { flex: none; color: var(--dsw-alias-label-tertiary); }
 .dsh-da-rowName { font-size: 14px; line-height: 22px; font-weight: 500; color: var(--dsw-alias-label-primary); font-family: var(--ds-font-family-code); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsh-da-rowMeta { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsh-da-rowToolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 0.5px solid var(--dsw-alias-border-l2); }
@@ -84,6 +85,17 @@ const CSS = `
   background-repeat: no-repeat; background-position: right 10px center; background-size: 12px 12px;
 }
 .dsh-da-selectInput:focus { outline: none; border-color: var(--dsw-alias-brand-primary); }
+
+.dsh-da-engineSelectRoot { width: 100%; }
+.dsh-da-engineTrigger {
+  box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 8px; font: inherit; font-size: 14px; line-height: 22px;
+  background-color: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary);
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.dsh-da-engineTrigger:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-da-engineTriggerLabel { flex: 1 1 auto; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsh-da-engineTriggerChevron { flex: none; color: var(--dsw-alias-label-tertiary); }
 
 .dsh-da-error { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-state-error-primary); }
 .dsh-da-loading { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }

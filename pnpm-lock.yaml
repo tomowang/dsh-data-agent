@@ -36,6 +36,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: ^3.18.2
         version: 3.18.2
+      '@thesvg/react':
+        specifier: ^3.3.7
+        version: 3.3.7(react@18.3.1)
       '@types/node':
         specifier: ^26.5.1
         version: 26.5.1
@@ -419,6 +422,12 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@thesvg/react@3.3.7':
+    resolution: {integrity: sha512-PRuMevFc9lyJF5sqq2ZfLiqsUBT/8LbqV0UIeWkLh1Cr7QuxoDGADOhryn9Lw0OGbknEhwFRjl2dyOZMpR493w==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=18'
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -1436,6 +1445,10 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@thesvg/react@3.3.7(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
 
   '@types/chai@5.2.3':
     dependencies:

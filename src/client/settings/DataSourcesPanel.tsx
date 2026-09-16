@@ -1,11 +1,14 @@
 import * as React from 'react'
 import {
+  IconChevronDownOutline14,
   IconDatabaseOutline16,
   IconEditOutline16,
   IconPlusOutline16,
   IconRefreshOutline16,
   IconTrashOutline16,
   Input,
+  Menu,
+  type MenuItem,
   StateDot,
   Switch,
   Tag,
@@ -14,6 +17,7 @@ import type { ConnectionTestResult, DataSourceRecord, Engine, SchemaResult } fro
 import { ensureDshStyles } from '../shared/dsh-styles.ts'
 import { SchemaTree } from '../shared/SchemaTree.tsx'
 import * as api from './api.ts'
+import { EngineIcon } from './EngineIcon.tsx'
 import {
   buildAddSourceInput,
   buildEditSourceInput,
@@ -66,6 +70,35 @@ function FormField({ field, value, onChange, t }: {
         required={field.required}
       />
     </label>
+  )
+}
+
+/** Icon-labeled dropdown for picking an `Engine` — a native `<select>` can't render the per-engine SVG mark inside its options. */
+function EngineSelect({ value, onChange, t }: { value: Engine, onChange: (engine: Engine) => void, t: T }): React.ReactElement {
+  const [open, setOpen] = React.useState(false)
+
+  const items: MenuItem[] = ENGINE_ORDER.map(engine => ({
+    id: engine,
+    label: t(ENGINE_FORM_SCHEMAS[engine].labelKey),
+    icon: <EngineIcon engine={engine} size={16} />,
+  }))
+
+  return (
+    <Menu
+      open={open}
+      onClose={() => setOpen(false)}
+      selectedId={value}
+      items={items}
+      onSelect={(id) => { onChange(id as Engine); setOpen(false) }}
+      className="dsh-da-engineSelectRoot"
+      anchor={(
+        <button type="button" className="dsh-da-engineTrigger" onClick={() => setOpen(o => !o)}>
+          <EngineIcon engine={value} size={16} />
+          <span className="dsh-da-engineTriggerLabel">{t(ENGINE_FORM_SCHEMAS[value].labelKey)}</span>
+          <IconChevronDownOutline14 className="dsh-da-engineTriggerChevron" />
+        </button>
+      )}
+    />
   )
 }
 
@@ -125,9 +158,7 @@ function AddSourceForm({ onAdded, t }: { onAdded: () => void, t: T }): React.Rea
       <div className="dsh-da-fieldGrid">
         <label className="dsh-da-field">
           <span className="dsh-da-fieldLabel">{t('fieldEngine')}</span>
-          <select className="dsh-da-selectInput" value={engine} onChange={e => changeEngine(e.target.value as Engine)}>
-            {ENGINE_ORDER.map(value => <option key={value} value={value}>{t(ENGINE_FORM_SCHEMAS[value].labelKey)}</option>)}
-          </select>
+          <EngineSelect value={engine} onChange={changeEngine} t={t} />
         </label>
         <label className="dsh-da-field">
           <span className="dsh-da-fieldLabel">{t('fieldName')}</span>
@@ -327,8 +358,8 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
     <li className="dsh-da-rowCard">
       <div className="dsh-da-rowHead">
         <span className="dsh-da-rowIdentity">
+          <EngineIcon engine={source.engine} className="dsh-da-engineIcon" title={t(ENGINE_FORM_SCHEMAS[source.engine].labelKey)} />
           <span className="dsh-da-rowName">{source.name}</span>
-          <Tag tone="neutral">{source.engine}</Tag>
           {!source.readOnly && <Tag tone="warning">{t('readWrite')}</Tag>}
         </span>
         <span className="dsh-da-rowActions">
