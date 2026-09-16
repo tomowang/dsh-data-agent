@@ -29,6 +29,8 @@ jobs:
 
       - run: pnpm run test
 
+      - run: pnpm run build
+
       - run: pnpm run build:client
 
       - name: Verify tag matches package.json version

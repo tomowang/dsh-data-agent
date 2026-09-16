@@ -8,9 +8,13 @@
     "type": "git",
     "url": "git+https://github.com/tomowang/dsh-data-agent.git"
   },
-  "main": "./src/index.ts",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
     "./client": "./lib/client.js"
   },
   "files": [
@@ -38,8 +42,10 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
     "test": "vitest run",
     "dev": "pnpm run build:client && dsh plugin --profile web add .",
+    "build": "tsc -p tsconfig.build.json",
     "build:client": "node scripts/build-client.mjs",
     "watch:client": "node scripts/build-client.mjs --watch",
+    "prepack": "pnpm run build && pnpm run build:client",
     "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
   "dependencies": {

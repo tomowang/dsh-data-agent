@@ -1,0 +1,18 @@
+// Emits the Host half to lib/ as plain JS + .d.ts for publishing. Node's
+// native TypeScript support refuses to strip types for files it resolves
+// under node_modules (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING) — that
+// only ever worked for local dev, where `dsh plugin add .` symlinks the
+// package back to this workspace checkout, outside any node_modules tree.
+// A real npm install needs compiled JS, same as every other @deepseek-ai/dsh-*
+// package on the registry.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": ["src"],
+  "exclude": ["src/client", "tests"]
+}
