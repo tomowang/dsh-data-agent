@@ -6,7 +6,7 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
   return {
     kind: 'tool-result',
     callId: 'call-1',
-    call: { name: 'run_sql', argsRaw: '{}' },
+    call: { name: 'da_run_sql', argsRaw: '{}' },
     content: [],
     isError: false,
     ...overrides,
@@ -15,7 +15,7 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
 
 describe('runSqlCardModel', () => {
   it('returns null for a running (unsettled) call', () => {
-    expect(runSqlCardModel({ callId: 'call-1', name: 'run_sql', argsRaw: '{}' })).toBeNull()
+    expect(runSqlCardModel({ callId: 'call-1', name: 'da_run_sql', argsRaw: '{}' })).toBeNull()
   })
 
   it('returns null for an error result', () => {

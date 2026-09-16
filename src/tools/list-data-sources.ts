@@ -2,7 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { DataSourceRecord } from '../data-source/types.ts'
 import { renderMarkdownTable, toSafeRecord } from './shared.ts'
 
-const NAME = 'list_data_sources'
+const NAME = 'da_list_data_sources'
 
 export function applyListDataSourcesTool(ctx: Context): void {
   ctx.tools.register({

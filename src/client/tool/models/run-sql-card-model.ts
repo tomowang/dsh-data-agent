@@ -44,7 +44,7 @@ function parseChart(value: unknown): RunSqlChart | undefined {
 }
 
 /**
- * Pure derivation of `run_sql`'s card props from `block.meta`. Never trusts
+ * Pure derivation of `da_run_sql`'s card props from `block.meta`. Never trusts
  * the raw wire value without full structural validation (session-log
  * replay). Returns `null` for anything malformed or not yet settled.
  */

@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { asRecord, requireString } from './tool-types.ts'
 
-const NAME = 'set_read_only'
+const NAME = 'da_set_read_only'
 
 export function applySetReadOnlyTool(ctx: Context): void {
   ctx.tools.register({

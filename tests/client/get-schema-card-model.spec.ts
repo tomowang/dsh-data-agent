@@ -6,7 +6,7 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
   return {
     kind: 'tool-result',
     callId: 'call-1',
-    call: { name: 'get_schema', argsRaw: '{}' },
+    call: { name: 'da_get_schema', argsRaw: '{}' },
     content: [],
     isError: false,
     ...overrides,
@@ -15,7 +15,7 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
 
 describe('getSchemaCardModel', () => {
   it('returns null for a running (unsettled) call', () => {
-    expect(getSchemaCardModel({ callId: 'call-1', name: 'get_schema', argsRaw: '{}' })).toBeNull()
+    expect(getSchemaCardModel({ callId: 'call-1', name: 'da_get_schema', argsRaw: '{}' })).toBeNull()
   })
 
   it('returns null for an error result', () => {

@@ -14,7 +14,7 @@ export interface SchemaTreeProps {
    * column detail lazily on first expand instead of assuming it's already
    * present — used by the Settings schema viewer, whose initial fetch is
    * database-scope (bounded, no per-column detail) by design. Omit for the
-   * Chat card, whose `get_schema` result already carries whatever scope the
+   * Chat card, whose `da_get_schema` result already carries whatever scope the
    * model asked for.
    */
   onExpandTable?: (table: string) => void
@@ -23,7 +23,7 @@ export interface SchemaTreeProps {
 }
 
 /**
- * Table/column browser shared between the `get_schema` Chat card
+ * Table/column browser shared between the `da_get_schema` Chat card
  * (`tool/components/GetSchemaRow.tsx`, read-only) and the Settings schema
  * viewer (`settings/DataSourcesPanel.tsx`, editable via `onSaveComment`) —
  * safe to share because both live in the same browser bundle (the

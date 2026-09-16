@@ -3,7 +3,7 @@ import { CONNECTION_FAILED_CODE, DataAgentError } from '../data-source/errors.ts
 import type { ConnectionTestResult } from '../data-source/types.ts'
 import { asRecord, requireString } from './tool-types.ts'
 
-const NAME = 'test_connection'
+const NAME = 'da_test_connection'
 
 export function applyTestConnectionTool(ctx: Context): void {
   ctx.tools.register({

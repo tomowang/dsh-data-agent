@@ -26,7 +26,7 @@ interface AstLike {
  * genuine syntax error) rather than guessing — this is a known limitation:
  * some legitimate read-only statements (SQLite `PRAGMA`, some PostgreSQL
  * `EXPLAIN` forms) fail to parse in the underlying grammar and are rejected
- * along with everything else this can't verify. `get_schema` covers the
+ * along with everything else this can't verify. `da_get_schema` covers the
  * common introspection need instead of requiring raw PRAGMA/EXPLAIN here.
  */
 function parseStatements(sql: string, engine: Engine): AstLike[] {
@@ -44,7 +44,7 @@ function parseStatements(sql: string, engine: Engine): AstLike[] {
 }
 
 /**
- * Enforce the two safety rules for `run_sql`, in order: (1) exactly one
+ * Enforce the two safety rules for `da_run_sql`, in order: (1) exactly one
  * top-level statement — blocks statement-stacking regardless of read-only
  * mode; (2) when `readOnly` is set, every statement's type must be in the
  * read-only allowlist. Throws `SqlRejectedError` (a plain input-validation
@@ -66,7 +66,7 @@ export function assertSqlAllowed(sql: string, engine: Engine, readOnly: boolean)
   if (statement === undefined || !READ_ONLY_TYPES.has(statement.type)) {
     throw new SqlRejectedError(
       `This data source is read-only: "${statement?.type ?? 'unknown'}" statements are not allowed. `
-      + 'Toggle read-only off for this source (set_read_only) to run write statements.',
+      + 'Toggle read-only off for this source (da_set_read_only) to run write statements.',
     )
   }
 }

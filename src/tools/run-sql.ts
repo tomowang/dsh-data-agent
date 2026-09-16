@@ -4,7 +4,7 @@ import type { JsonScalar, QueryResult } from '../data-source/types.ts'
 import { renderMarkdownTable } from './shared.ts'
 import { asRecord, optionalNumber, requireEnum, requireString } from './tool-types.ts'
 
-const NAME = 'run_sql'
+const NAME = 'da_run_sql'
 /** Safety ceiling, not deployment-configurable: unbounded row limits are a stability/security invariant. */
 const HARD_MAX_ROWS = 5000
 const RENDER_PREVIEW_ROWS = 50
@@ -65,7 +65,7 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
     description:
       'Run one SQL statement against a registered data source. Statement-stacking (multiple ;-separated '
       + 'statements) is always rejected. On a read-only source, only SELECT/SHOW/EXPLAIN-class statements are '
-      + 'allowed — toggle with set_read_only to run writes. Bind parameters with the target engine\'s native '
+      + 'allowed — toggle with da_set_read_only to run writes. Bind parameters with the target engine\'s native '
       + 'placeholder syntax: `?` for MySQL/SQLite, `$1, $2, ...` for PostgreSQL. Pass `chart` to additionally '
       + 'render a bar/line/pie chart of the result in the Web UI (x/y must name columns in the result).',
     parameters: {

@@ -11,7 +11,7 @@ import {
   requireString,
 } from './tool-types.ts'
 
-const NAME = 'add_data_source'
+const NAME = 'da_add_data_source'
 const ENGINES: readonly Engine[] = ['mysql', 'postgres', 'sqlite']
 const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 
@@ -27,7 +27,7 @@ export function applyAddDataSourceTool(ctx: Context): void {
       + "certificate chain), or `verify-full` (encrypted, verifies the chain and hostname). `verify-ca`/`verify-full` "
       + 'should be paired with `sslrootcert` unless the certificate already chains to a CA Node trusts by default. '
       + 'For SQLite, `database` is the file path and the other connection fields are ignored. The connection is not '
-      + 'tested here — use test_connection afterward.',
+      + 'tested here — use da_test_connection afterward.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -50,7 +50,7 @@ export function applyAddDataSourceTool(ctx: Context): void {
           type: 'string',
           description: 'PostgreSQL only. Path to a PEM-encoded CA certificate file, used when `sslmode` is `verify-ca` or `verify-full`.',
         },
-        readOnly: { type: 'boolean', description: 'Defaults to true. Toggle later with set_read_only.' },
+        readOnly: { type: 'boolean', description: 'Defaults to true. Toggle later with da_set_read_only.' },
         description: { type: 'string' },
       },
     },

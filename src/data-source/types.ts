@@ -59,7 +59,7 @@ export interface TableInfo {
   readonly comment?: string
   readonly nativeComment?: string
   readonly columnCount: number
-  /** Present only for a single-table `get_schema` call. */
+  /** Present only for a single-table `da_get_schema` call. */
   readonly columns?: readonly ColumnInfo[]
   readonly truncated?: boolean
 }

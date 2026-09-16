@@ -4,14 +4,14 @@ import { mergeSchemaComments } from '../data-source/schema-comments.ts'
 import type { SchemaResult } from '../data-source/types.ts'
 import { asRecord, optionalString, requireString } from './tool-types.ts'
 
-const NAME = 'get_schema'
+const NAME = 'da_get_schema'
 
 export function applyGetSchemaTool(ctx: Context): void {
   ctx.tools.register({
     name: NAME,
     description:
       'Fetch tables (and, given `table`, column detail) for a registered data source, merged with any comments '
-      + 'saved via set_comment. Omit `table` for a database-level overview (table names, comments, column counts).',
+      + 'saved via da_set_comment. Omit `table` for a database-level overview (table names, comments, column counts).',
     parameters: {
       type: 'object',
       additionalProperties: false,

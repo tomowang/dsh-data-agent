@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { asRecord, requireString } from './tool-types.ts'
 
-const NAME = 'remove_data_source'
+const NAME = 'da_remove_data_source'
 
 export function applyRemoveDataSourceTool(ctx: Context): void {
   ctx.tools.register({

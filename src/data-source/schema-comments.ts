@@ -27,7 +27,7 @@ function mergeTable(table: TableInfo, comments: Record<string, TableComments>): 
 
 /**
  * Merge persisted comments.json entries into an adapter's raw schema result.
- * Shared by the get_schema tool and the Settings-page schema route so both
+ * Shared by the da_get_schema tool and the Settings-page schema route so both
  * callers of `DataSourceRegistry`/adapters present identical comment
  * resolution, with exactly one implementation to keep correct.
  */

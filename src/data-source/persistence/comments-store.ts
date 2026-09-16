@@ -43,7 +43,7 @@ export async function getColumnComment(sourceName: string, table: string, column
   return comments[sourceName]?.[table]?.columns?.[column]
 }
 
-/** All comments for one source, keyed by table then column — used by `get_schema` to merge in one read. */
+/** All comments for one source, keyed by table then column — used by `da_get_schema` to merge in one read. */
 export async function getSourceComments(sourceName: string): Promise<Record<string, TableComments>> {
   const comments = await readComments()
   return comments[sourceName] ?? {}

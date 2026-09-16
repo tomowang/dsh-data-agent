@@ -15,7 +15,7 @@ import { applyTestConnectionTool } from './tools/test-connection.ts'
 export const name = 'data-agent'
 
 export interface Config {
-  /** Default row cap for run_sql when the caller doesn't pass maxRows. */
+  /** Default row cap for da_run_sql when the caller doesn't pass maxRows. */
   defaultMaxRows: number
 }
 

@@ -2,13 +2,13 @@ import type { Context } from '@deepseek-ai/cordis'
 import { setComment } from '../data-source/persistence/comments-store.ts'
 import { asRecord, optionalString, requireString } from './tool-types.ts'
 
-const NAME = 'set_comment'
+const NAME = 'da_set_comment'
 
 export function applySetCommentTool(ctx: Context): void {
   ctx.tools.register({
     name: NAME,
     description:
-      'Add, change, or clear a comment on a table or column, shown thereafter in get_schema. Omit `column` for a '
+      'Add, change, or clear a comment on a table or column, shown thereafter in da_get_schema. Omit `column` for a '
       + 'table-level comment. Pass an empty `comment` to clear it.',
     parameters: {
       type: 'object',

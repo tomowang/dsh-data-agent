@@ -72,8 +72,8 @@ function Chart({ chart, rows }: { chart: RunSqlChart, rows: readonly Record<stri
 }
 
 /**
- * `run_sql` Chat card. Claiming this key suppresses the generic fallback for
- * every `run_sql` result, so this component must cover every shape: running,
+ * `da_run_sql` Chat card. Claiming this key suppresses the generic fallback for
+ * every `da_run_sql` result, so this component must cover every shape: running,
  * error, and malformed/legacy `meta` all render as plain text.
  */
 export function RunSqlRow({ block }: ToolRowProps): React.ReactElement {

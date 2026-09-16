@@ -4,11 +4,11 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 
 ## Features
 
-- **Data-source management** — register MySQL, PostgreSQL, or SQLite connections (`add_data_source`/`edit_data_source`/`remove_data_source`/`list_data_sources`), or manage them from Settings → Data Sources.
-- **Connection checks & schema browsing** — `test_connection` and `get_schema` (database overview or full column detail for one table), rendered as a Markdown table in chat and as a rich, expandable browser in both the chat card and the Settings schema viewer.
-- **Table/column comments** — `set_comment` from chat, or click-to-edit inline in the Settings schema viewer; both write to the same store.
-- **SQL execution with a read-only toggle** — `run_sql`, AST-verified (not string-matched) to reject write statements on a read-only source and to always reject statement-stacking. Toggle a source's read-only flag anytime with `set_read_only` (or the checkbox in Settings).
-- **Charts** — pass `chart: { type: 'bar'|'line'|'pie', x, y }` to `run_sql` for a `recharts` chart alongside the data table in the Web UI.
+- **Data-source management** — register MySQL, PostgreSQL, or SQLite connections (`da_add_data_source`/`da_edit_data_source`/`da_remove_data_source`/`da_list_data_sources`), or manage them from Settings → Data Sources.
+- **Connection checks & schema browsing** — `da_test_connection` and `da_get_schema` (database overview or full column detail for one table), rendered as a Markdown table in chat and as a rich, expandable browser in both the chat card and the Settings schema viewer.
+- **Table/column comments** — `da_set_comment` from chat, or click-to-edit inline in the Settings schema viewer; both write to the same store.
+- **SQL execution with a read-only toggle** — `da_run_sql`, AST-verified (not string-matched) to reject write statements on a read-only source and to always reject statement-stacking. Toggle a source's read-only flag anytime with `da_set_read_only` (or the checkbox in Settings).
+- **Charts** — pass `chart: { type: 'bar'|'line'|'pie', x, y }` to `da_run_sql` for a `recharts` chart alongside the data table in the Web UI.
 
 Secrets are never stored directly: connections reference a `passwordEnv` (an environment variable **name**), resolved at connect time via the harness's `ctx.credentials` seam when mounted, else `process.env`.
 
@@ -55,7 +55,7 @@ src/
   settings-api/           raw ctx.webServer routes + Origin trust check backing the Settings panel
 src/client/                the browser bundle (see below)
   index.ts                client plugin entry: registers the two chat toolviews + the Settings section
-  tool/                   run_sql / get_schema chat cards (card models + components + toolview registrations)
+  tool/                   da_run_sql / da_get_schema chat cards (card models + components + toolview registrations)
   settings/               the Data Sources settings panel + its fetch() API client
   shared/SchemaTree.tsx   table/column browser shared by the chat card and the Settings panel
 scripts/build-client.mjs esbuild build for src/client -> lib/client.js
@@ -111,13 +111,13 @@ See `deepseek-harness`'s [plugin tutorials](https://github.com/deepseek-ai/deeps
 
 ## Testing against real MySQL/PostgreSQL
 
-`tests/` cover SQLite in-process (no server needed) plus the SQL classifier, persistence, and registry logic. To exercise the MySQL/PostgreSQL adapters against a real server, register a source with `add_data_source` (or Settings → Data Sources) pointing at a reachable instance — a local Docker container works fine — and run `test_connection`/`get_schema`/`run_sql` from there.
+`tests/` cover SQLite in-process (no server needed) plus the SQL classifier, persistence, and registry logic. To exercise the MySQL/PostgreSQL adapters against a real server, register a source with `da_add_data_source` (or Settings → Data Sources) pointing at a reachable instance — a local Docker container works fine — and run `da_test_connection`/`da_get_schema`/`da_run_sql` from there.
 
 ## Known v1 limitations
 
 - No update/upsert of connection details beyond the read-only toggle — remove and re-add for anything else (host, port, credentials, ...).
 - SQL placeholder syntax isn't unified across engines: `?` for MySQL/SQLite, `$1, $2, ...` for PostgreSQL.
-- `run_sql`'s safety check rejects any statement the parser can't classify (e.g. SQLite `PRAGMA`, some PostgreSQL `EXPLAIN` forms) rather than guessing — use `get_schema` for introspection instead of raw `PRAGMA`.
+- `da_run_sql`'s safety check rejects any statement the parser can't classify (e.g. SQLite `PRAGMA`, some PostgreSQL `EXPLAIN` forms) rather than guessing — use `da_get_schema` for introspection instead of raw `PRAGMA`.
 - The Settings panel's raw HTTP routes carry a hand-rolled `Origin` check rather than the harness's own `/api` trust fence (which is specific to `ctx.remote` calls) — adequate for the existing loopback-only threat model, not a claim of parity.
 
 ## Scripts

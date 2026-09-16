@@ -21,7 +21,7 @@ function isTableInfo(value: unknown): value is TableInfo {
 }
 
 /**
- * Pure derivation of `get_schema`'s card props from `block.meta`. Never
+ * Pure derivation of `da_get_schema`'s card props from `block.meta`. Never
  * trusts the raw wire value without full structural validation — this runs
  * on session-log replay of arbitrary historical data, not just live results.
  * Returns `null` for anything malformed or not yet settled, falling back to

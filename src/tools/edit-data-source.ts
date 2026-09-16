@@ -11,7 +11,7 @@ import {
   requireString,
 } from './tool-types.ts'
 
-const NAME = 'edit_data_source'
+const NAME = 'da_edit_data_source'
 const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 
 export function applyEditDataSourceTool(ctx: Context): void {
@@ -20,9 +20,9 @@ export function applyEditDataSourceTool(ctx: Context): void {
     description:
       'Update an existing data source\'s connection details, read-only flag, or description, without removing and '
       + 're-adding it (which would also drop its saved schema comments). `name` and `engine` cannot be changed here — '
-      + 'use remove_data_source then add_data_source to switch engine. Every other field is optional: omit a field to '
+      + 'use da_remove_data_source then da_add_data_source to switch engine. Every other field is optional: omit a field to '
       + 'leave it as-is, pass `null` to clear it, or pass a value to replace it. Any already-open connection to this '
-      + 'source is closed so the next query reopens under the new settings — test_connection afterward to confirm.',
+      + 'source is closed so the next query reopens under the new settings — da_test_connection afterward to confirm.',
     parameters: {
       type: 'object',
       additionalProperties: false,
