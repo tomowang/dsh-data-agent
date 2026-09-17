@@ -81,7 +81,7 @@ Link this checkout into the `web` profile and register it as a bundle:
 
 ```sh
 pnpm run dev
-# same as: pnpm run build:client && dsh plugin --profile web add .
+# same as: pnpm run build && dsh plugin --profile web add .
 ```
 
 This is one-time (or re-run after changing `package.json` dependencies): pnpm `link:`s this directory into the profile's `node_modules` and appends `@tomowang/dsh-data-agent` to the profile's `dsh.profile.bundles`. Verify the layer, then boot:
@@ -91,7 +91,7 @@ dsh --profile web --dump-config   # confirm the "# == @tomowang/dsh-data-agent" 
 dsh --profile web
 ```
 
-Because it's a symlink, edits to `src/index.ts` (the Host half) are picked up the next time the `web` profile boots — no need to re-run `add`. Edits under `src/client/` need `pnpm run build:client` (or `watch:client`) first, since the browser loads the built `lib/client.js`, not the TypeScript source. Either way, **a running `dsh --profile web` process needs restarting** to pick up a changed plugin bundle — reloading the page alone is not enough (the plugin bundle list is fixed at process boot). `dsh plugin --profile web remove @tomowang/dsh-data-agent` undoes the install.
+Because it's a symlink, no need to re-run `add` after an edit — but the profile loads `lib/`, never `src/` directly, for *either* half: rebuild with `pnpm run build` (or `build:host`/`build:client` for just one, `watch`/`watch:host`/`watch:client` to rebuild on every change) before the next boot picks up an edit. There's no hot-reload for either half (checked: `@deepseek-ai/cordis-plugin-hmr` explicitly excludes anything resolved through `node_modules`, which is how a linked profile always loads this plugin) — **a running `dsh --profile web` process needs restarting** to pick up a rebuilt bundle, reloading the page alone is not enough (the plugin bundle list is fixed at process boot). `dsh plugin --profile web remove @tomowang/dsh-data-agent` undoes the install.
 
 For quick Host-only throwaway testing without touching any profile (also local development only; skips the client bundle, so no Web UI cards/settings — use the linked-profile flow above for that), overlay the source file directly against a `deepseek-harness` source checkout:
 
@@ -125,5 +125,6 @@ See `deepseek-harness`'s [plugin tutorials](https://github.com/deepseek-ai/deeps
 
 - `pnpm run typecheck` — type-check both the Host (`tsconfig.json`) and Client (`tsconfig.client.json`) source
 - `pnpm run test` — run tests (vitest)
-- `pnpm run build:client` / `watch:client` — build the browser bundle
-- `pnpm run dev` — build the client bundle and link this plugin into the local `web` profile
+- `pnpm run build` — build both halves to `lib/` (`build:host` + `build:client`)
+- `pnpm run build:host` / `build:client` (or `watch:host` / `watch:client`, or plain `watch` for both at once) — build one half only
+- `pnpm run dev` — build both halves and link this plugin into the local `web` profile

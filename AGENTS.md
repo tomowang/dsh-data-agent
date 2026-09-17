@@ -17,11 +17,16 @@ chat toolviews and the Settings → Data Sources panel. See `README.md`
 - `pnpm run typecheck` — type-checks both the Host (`tsconfig.json`) and
   Client (`tsconfig.client.json`) source; run after any change.
 - `pnpm run test` — vitest.
-- `pnpm run build:client` / `watch:client` — rebuild `lib/client.js`; required
-  after any change under `src/client/` (the browser loads the built file, not
-  the TypeScript source).
-- `pnpm run dev` — build the client bundle and link this plugin into the
-  local `web` profile for manual verification.
+- `pnpm run build` — rebuild both halves to `lib/` (`build:host` + `build:client`).
+  Required after *any* source change before a linked `web` profile picks it
+  up — the profile loads `lib/`, never `src/` directly, for either half.
+- `pnpm run build:host` / `build:client` (or `watch:host` / `watch:client` to
+  rebuild on every change, or plain `watch` for both at once) — rebuild one
+  half only.
+- `pnpm run dev` — build both halves and link this plugin into the local
+  `web` profile for manual verification. Re-running `pnpm run build` (or
+  `build:host`) and restarting the profile process is required after every
+  later edit — there's no hot-reload for either half.
 
 ## Commit messages
 

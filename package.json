@@ -41,11 +41,14 @@
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
     "test": "vitest run",
-    "dev": "pnpm run build:client && dsh plugin --profile web add .",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "pnpm run build:host && pnpm run build:client",
+    "build:host": "tsc -p tsconfig.build.json",
     "build:client": "node scripts/build-client.mjs",
+    "watch:host": "tsc -p tsconfig.build.json --watch",
     "watch:client": "node scripts/build-client.mjs --watch",
-    "prepack": "pnpm run build && pnpm run build:client",
+    "watch": "pnpm run watch:host & pnpm run watch:client & wait",
+    "dev": "pnpm run build && dsh plugin --profile web add .",
+    "prepack": "pnpm run build",
     "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
   "dependencies": {
