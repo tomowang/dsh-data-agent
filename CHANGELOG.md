@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.1] - 2026-09-17
+
+### CI/Build
+
+- Restore npm registry-url setup for OIDC trusted publishing
+
 ## [0.2.0] - 2026-09-17
 
 ### Bug Fixes
