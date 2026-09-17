@@ -22,6 +22,9 @@ npm install -g @deepseek-ai/dsh
 
 # 2. Install this bundle into the web profile
 dsh plugin --profile web add @tomowang/dsh-data-agent
+
+# 3. Approve skia-canvas's native build script (needed for da_render_chart's PNG output)
+dsh plugin --profile web approve-builds
 ```
 
 `dsh` reconciles the profile manifest's `dsh.profile.bundles` list automatically (this package declares `dsh.bundle.patch`), fetching the published npm package — no local checkout or build step needed. Restart the `web` profile process to pick it up.
