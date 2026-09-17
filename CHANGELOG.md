@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] - 2026-09-17
+
+### Bug Fixes
+
+- Wire schema-tree table expand in chat get-schema card
+
+### Documentation
+
+- Add build-approval step to install instructions
+
+### Features
+
+- Add a Tools tab to the settings panel
+- Add tooltip to password env var field label
+- Default new data source engine to mysql
+
+### UI
+
+- Reorder engine dropdown to mysql, postgres, sqlite, clickhouse
+
 ## [0.2.1] - 2026-09-17
 
 ### CI/Build
