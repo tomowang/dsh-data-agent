@@ -1,14 +1,14 @@
 /**
  * Locale bundle for the settings section (nav-labeled and titled "Data
- * Agent"): the nav label, the panel chrome (`DataSourcesPanel.tsx` — whose
- * body still covers data sources specifically, under its own "Data Sources"
- * subsection heading), and the `ENGINE_FORM_SCHEMAS` engine/field/SSL-mode-
- * option labels (data-source-form-schema.ts).
+ * Agent"): the nav label, the panel chrome (`DataSourcesPanel.tsx`, which
+ * hosts a "Data Sources" tab and a "Tools" tab), and the `ENGINE_FORM_SCHEMAS`
+ * engine/field/SSL-mode-option labels (data-source-form-schema.ts).
  */
 
 /** Locale keys this section's nav registration and panel render. */
 export type DataSourcesSettingsLocaleKey =
-  | 'nav' | 'title' | 'dataSourcesSectionTitle' | 'intro' | 'loading' | 'empty'
+  | 'nav' | 'title' | 'pluginDescription' | 'tabDataSources' | 'tabTools' | 'intro' | 'loading' | 'empty'
+  | 'toolsIntro' | 'toolsEmpty'
   | 'engineSqlite' | 'engineMysql' | 'enginePostgres' | 'engineClickhouse'
   | 'fieldFilePath' | 'fieldHost' | 'fieldPort' | 'fieldUser' | 'fieldPasswordEnv'
   | 'fieldDatabase' | 'fieldSsl' | 'fieldSslMode' | 'fieldCaCertPath'
@@ -25,10 +25,14 @@ export type DataSourcesSettingsLocaleKey =
 export const en: Record<DataSourcesSettingsLocaleKey, string> = {
   nav: 'Data Agent',
   title: 'Data Agent',
-  dataSourcesSectionTitle: 'Data Sources',
+  pluginDescription: 'Manage database connections, browse and annotate schemas, and run SQL — conversationally in chat or here in Settings.',
+  tabDataSources: 'Data Sources',
+  tabTools: 'Tools',
   intro: 'Register database connections for chat tools to query.',
   loading: 'Loading…',
   empty: 'No data sources registered yet.',
+  toolsIntro: 'Chat tools this plugin registers, and what each one does.',
+  toolsEmpty: 'No tools registered.',
   engineSqlite: 'SQLite',
   engineMysql: 'MySQL',
   enginePostgres: 'PostgreSQL',
@@ -78,10 +82,14 @@ export const en: Record<DataSourcesSettingsLocaleKey, string> = {
 export const zh: Record<DataSourcesSettingsLocaleKey, string> = {
   nav: '数据智能体',
   title: '数据智能体',
-  dataSourcesSectionTitle: '数据源',
+  pluginDescription: '管理数据库连接、浏览和标注表结构、执行 SQL —— 既可在聊天中使用，也可在此设置面板中操作。',
+  tabDataSources: '数据源',
+  tabTools: '工具',
   intro: '为聊天工具注册数据库连接以供查询。',
   loading: '加载中…',
   empty: '尚未注册任何数据源。',
+  toolsIntro: '本插件注册的聊天工具及其功能说明。',
+  toolsEmpty: '尚未注册任何工具。',
   engineSqlite: 'SQLite',
   engineMysql: 'MySQL',
   enginePostgres: 'PostgreSQL',

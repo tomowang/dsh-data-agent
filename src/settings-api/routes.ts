@@ -159,6 +159,21 @@ export function applySettingsApiRoutes(ctx: Context): void {
 
   ctx.webServer.register({
     kind: 'exact',
+    path: `${ROUTE_PREFIX}/list-tools`,
+    // `ctx.tools.schemas()` is the whole host's visible tool registry, not just
+    // this plugin's — every da_* tool name is unique to this plugin, so the
+    // prefix filter scopes it back down without duplicating each tool's
+    // `description` string into a second, driftable list.
+    handler: jsonRoute(ctx, async () => ({
+      tools: ctx.tools.schemas()
+        .filter(schema => schema.name.startsWith('da_'))
+        .map(schema => ({ name: schema.name, description: schema.description }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    })),
+  })
+
+  ctx.webServer.register({
+    kind: 'exact',
     path: `${ROUTE_PREFIX}/set-comment`,
     handler: jsonRoute(ctx, async (_req, body) => {
       const sourceName = String(body.sourceName ?? '')

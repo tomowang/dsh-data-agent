@@ -1,5 +1,4 @@
 import * as React from 'react'
-import Github from '@thesvg/react/github'
 import {
   IconChevronDownOutline14,
   IconDatabaseOutline16,
@@ -15,7 +14,6 @@ import {
   Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionTestResult, DataSourceRecord, Engine, SchemaResult } from '../../data-source/types.ts'
-import { ensureDshStyles } from '../shared/dsh-styles.ts'
 import { SchemaTree } from '../shared/SchemaTree.tsx'
 import * as api from './api.ts'
 import { EngineIcon } from './EngineIcon.tsx'
@@ -31,8 +29,6 @@ import {
   visibleFields,
 } from './data-source-form-schema.ts'
 import type { DataSourcesSettingsLocaleKey } from './locales.ts'
-
-ensureDshStyles()
 
 /** Translate a dictionary key of this section's own namespace (framework-injected standard seat). */
 type T = (key: DataSourcesSettingsLocaleKey, params?: Record<string, unknown>) => string
@@ -443,12 +439,7 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
   )
 }
 
-/**
- * Content panel for the `data-sources` settings.section entry (settings/index.ts).
- * `t` is the framework-injected standard seat: the section registration
- * declares `locale: NS`, so the renderer binds it to this namespace's
- * dictionary and re-invokes on locale change.
- */
+/** "Data Sources" tab content for the `data-sources` settings.section entry (DataAgentPanel.tsx). */
 export function DataSourcesPanel({ t }: { t: T }): React.ReactElement {
   const [sources, setSources] = React.useState<DataSourceRecord[] | undefined>(undefined)
   const [error, setError] = React.useState<string | undefined>(undefined)
@@ -463,31 +454,7 @@ export function DataSourcesPanel({ t }: { t: T }): React.ReactElement {
   React.useEffect(() => { refresh() }, [refresh])
 
   return (
-    <div className="dsh-da-section">
-      <div className="dsh-da-titleBar">
-        <h2 className="dsh-da-title">{t('title')}</h2>
-        <span className="dsh-da-titleMeta">
-          <a
-            className="dsh-da-githubLink"
-            href={__DSH_DATA_AGENT_REPO_URL__}
-            target="_blank"
-            rel="noreferrer"
-            title={t('viewOnGithub')}
-            aria-label={t('viewOnGithub')}
-          >
-            <Github variant="mono" width={16} height={16} />
-          </a>
-          <a
-            className="dsh-da-versionLabel"
-            href={`${__DSH_DATA_AGENT_REPO_URL__}/releases/tag/v${__DSH_DATA_AGENT_VERSION__}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            v{__DSH_DATA_AGENT_VERSION__}
-          </a>
-        </span>
-      </div>
-      <h3 className="dsh-da-subtitle">{t('dataSourcesSectionTitle')}</h3>
+    <>
       <p className="dsh-da-intro">{t('intro')}</p>
       {error !== undefined && <p className="dsh-da-error">{error}</p>}
       <ul className="dsh-da-rows">
@@ -498,6 +465,6 @@ export function DataSourcesPanel({ t }: { t: T }): React.ReactElement {
             : sources.map(source => <SourceRow key={source.name} source={source} onChanged={refresh} t={t} />)}
       </ul>
       <AddSourceForm onAdded={refresh} t={t} />
-    </div>
+    </>
   )
 }

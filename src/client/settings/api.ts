@@ -82,3 +82,12 @@ export function getSchema(sourceName: string, table?: string): Promise<SchemaRes
 export function setComment(sourceName: string, table: string, column: string | undefined, comment: string | null): Promise<void> {
   return call('set-comment', { sourceName, table, column, comment: comment ?? '' })
 }
+
+export interface ToolSummary {
+  name: string
+  description: string
+}
+
+export function listTools(): Promise<{ tools: ToolSummary[] }> {
+  return call('list-tools')
+}

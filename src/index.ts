@@ -53,7 +53,7 @@ export function apply(ctx: Context, config: Config): void {
   // failing the whole plugin.
   ctx.plugin({
     name: 'dsh-data-agent-settings-api',
-    inject: ['webServer', 'dataAgent'],
+    inject: ['webServer', 'dataAgent', 'tools'],
     apply: applySettingsApiRoutes,
   })
 

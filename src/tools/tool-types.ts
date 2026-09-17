@@ -57,9 +57,18 @@ export interface ToolDefinition {
   execute(args: unknown, exec: ToolRunContext): Promise<unknown>
 }
 
+/** The model-facing projection `ToolsService.schemas()` returns — name/description/parameters, no execute/render. */
+export interface ToolSchemaSummary {
+  readonly name: string
+  readonly description: string
+  readonly parameters: JsonSchemaNode
+}
+
 declare module '@deepseek-ai/cordis' {
   interface ToolsService {
     register(definition: ToolDefinition): () => void
+    /** Every tool visible in the global scope, projected onto its model-facing schema fields. */
+    schemas(): ToolSchemaSummary[]
   }
 
   interface Context {

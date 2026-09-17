@@ -25,6 +25,18 @@ const CSS = `
 .dsh-da-subtitle { margin: 0; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-secondary); }
 .dsh-da-intro { margin: 0; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-tertiary); }
 
+.dsh-da-tabs { display: flex; gap: 4px; border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.dsh-da-tab {
+  box-sizing: border-box; padding: 8px 4px; margin-bottom: -1px; border: none; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--dsw-alias-label-tertiary); font: inherit; font-size: 13px; line-height: 20px; cursor: pointer;
+}
+.dsh-da-tab:hover { color: var(--dsw-alias-label-primary); }
+.dsh-da-tab[data-active='true'] { color: var(--dsw-alias-label-primary); border-bottom-color: var(--dsw-alias-brand-primary); font-weight: 500; }
+
+.dsh-da-toolRow { border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.dsh-da-toolName { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-primary); font-family: var(--ds-font-family-code); }
+.dsh-da-toolDescription { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+
 .dsh-da-rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .dsh-da-empty { margin: 0; padding: 20px; border: 1px dashed var(--dsw-alias-border-l3); border-radius: 12px; text-align: center; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
 

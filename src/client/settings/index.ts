@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { DataSourcesPanel } from './DataSourcesPanel.tsx'
+import { DataAgentPanel } from './DataAgentPanel.tsx'
 import { registerSettingsNavIcon } from './settings-nav-icon.ts'
 import { en, zh } from './locales.ts'
 
@@ -44,6 +44,6 @@ export const dataSourcesSettingsSection = {
       order: 999,
       label: () => t('nav'),
       locale: NS,
-    }, DataSourcesPanel))
+    }, DataAgentPanel))
   },
 }

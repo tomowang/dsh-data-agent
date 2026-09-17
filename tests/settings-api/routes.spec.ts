@@ -136,6 +136,29 @@ describe('settings-api routes', () => {
     await dispose()
   })
 
+  it('list-tools filters the host tool registry down to this plugin\'s da_* tools', async () => {
+    const { ctx, routes, dispose } = await createTestContext()
+    ctx.tools = {
+      register: () => () => {},
+      schemas: () => [
+        { name: 'da_run_sql', description: 'Run SQL.', parameters: {} },
+        { name: 'da_list_data_sources', description: 'List sources.', parameters: {} },
+        { name: 'unrelated_plugin_tool', description: 'Not ours.', parameters: {} },
+      ],
+    }
+
+    const { res, result } = fakeRes()
+    await routes.get('/dsh-data-agent/api/list-tools')?.(fakeReq({}), res)
+    expect(result.status).toBe(200)
+    expect(result.body).toEqual({
+      tools: [
+        { name: 'da_list_data_sources', description: 'List sources.' },
+        { name: 'da_run_sql', description: 'Run SQL.' },
+      ],
+    })
+    await dispose()
+  })
+
   it('maps an unknown source name to a 404-shaped error, not a crash', async () => {
     const { routes, dispose } = await createTestContext()
     const { res, result } = fakeRes()
