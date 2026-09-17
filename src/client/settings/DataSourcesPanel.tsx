@@ -120,8 +120,8 @@ function EngineSelect({ value, onChange, t }: { value: Engine, onChange: (engine
 function AddSourceForm({ onAdded, t }: { onAdded: () => void, t: T }): React.ReactElement {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState('')
-  const [engine, setEngine] = React.useState<Engine>('sqlite')
-  const [values, setValues] = React.useState<FieldValues>(() => defaultFieldValues('sqlite'))
+  const [engine, setEngine] = React.useState<Engine>('mysql')
+  const [values, setValues] = React.useState<FieldValues>(() => defaultFieldValues('mysql'))
   const [readOnly, setReadOnly] = React.useState(true)
   const [description, setDescription] = React.useState('')
   const [error, setError] = React.useState<string | undefined>(undefined)
@@ -150,8 +150,8 @@ function AddSourceForm({ onAdded, t }: { onAdded: () => void, t: T }): React.Rea
     try {
       await api.addSource(buildAddSourceInput(engine, name, readOnly, description, values))
       setName('')
-      setEngine('sqlite')
-      setValues(defaultFieldValues('sqlite'))
+      setEngine('mysql')
+      setValues(defaultFieldValues('mysql'))
       setReadOnly(true)
       setDescription('')
       setOpen(false)
