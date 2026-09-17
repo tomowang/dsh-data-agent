@@ -2,6 +2,47 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.0] - 2026-09-17
+
+### Bug Fixes
+
+- Coerce mysql column count to a number in get_schema
+- Auto-dismiss the data source connection test status line
+- Show a loading state on the view-schema button
+- Compile the host half to lib/ instead of shipping raw .ts
+
+### CI/Build
+
+- Upgrade github actions to latest versions
+
+### Chores
+
+- Upgrade npm dependencies to latest
+- Unify host/client build scripts, add watch:host and watch
+
+### Documentation
+
+- Tidy README, drop stale v1 limitation
+
+### Features
+
+- Localize the Data Agent settings section
+- Show engine brand icons for data sources
+- Show a GitHub link and version tag in the settings title bar
+- Add ClickHouse as a supported data source engine
+- Split chart rendering out of da_run_sql into da_render_chart
+- Support stacked bar charts in da_render_chart
+- Switch da_render_chart to chart.js, add static PNG output
+
+### Refactor
+
+- Prefix tool ids with da_
+
+### UI
+
+- Move the description field to its own full-width row
+- Use consistent title-case labels for postgres SSL modes
+
 ## [0.1.1] - 2026-09-15
 
 ### Bug Fixes
@@ -11,10 +52,12 @@ All notable changes to this project are documented in this file.
 - Omit undefined comment keys from MySQL/Postgres adapter output
 - Surface connection-test failure when the connection itself fails to open
 - Rebuild the client bundle under the renamed package id
+- Satisfy noUncheckedIndexedAccess in schema-comments test
 
 ### CI/Build
 
 - Publish to npm via tag-triggered release workflow
+- Drop the pnpm/action-setup version pin
 
 ### Chores
 
