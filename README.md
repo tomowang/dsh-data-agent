@@ -8,7 +8,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 - **Connection checks & schema browsing** — `da_test_connection` and `da_get_schema` (database overview or full column detail for one table), rendered as a Markdown table in chat and as a rich, expandable browser in both the chat card and the Settings schema viewer.
 - **Table/column comments** — `da_set_comment` from chat, or click-to-edit inline in the Settings schema viewer; both write to the same store.
 - **SQL execution with a read-only toggle** — `da_run_sql`, AST-verified (not string-matched) to reject write statements on a read-only source and to always reject statement-stacking. Toggle a source's read-only flag anytime with `da_set_read_only` (or the checkbox in Settings).
-- **Charts** — `da_render_chart` renders a `recharts` bar/line/pie chart from either `data` (inline rows) or `resultId` (a prior `da_run_sql` call's result, referenced by id instead of resent — cached in memory per conversation for 30 minutes).
+- **Charts** — `da_render_chart` renders a `recharts` bar/stacked-bar/line/pie chart from either `data` (inline rows) or `resultId` (a prior `da_run_sql` call's result, referenced by id instead of resent — cached in memory per conversation for 30 minutes).
 
 Secrets are never stored directly: connections reference a `passwordEnv` (an environment variable **name**), resolved at connect time via the harness's `ctx.credentials` seam when mounted, else `process.env`.
 

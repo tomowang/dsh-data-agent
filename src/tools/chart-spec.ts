@@ -1,7 +1,7 @@
 import type { JsonScalar, QueryColumn, QueryRow } from '../data-source/types.ts'
 import { ToolInputError } from './tool-types.ts'
 
-export const CHART_TYPES = ['bar', 'line', 'pie'] as const
+export const CHART_TYPES = ['bar', 'stacked-bar', 'line', 'pie'] as const
 export type ChartType = (typeof CHART_TYPES)[number]
 
 /** Columns are derived from row shape (inline `data`), not declared up front, so x/y are validated after the fact. */

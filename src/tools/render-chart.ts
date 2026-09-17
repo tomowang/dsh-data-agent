@@ -31,9 +31,10 @@ export function applyRenderChartTool(ctx: Context): void {
   ctx.tools.register({
     name: NAME,
     description:
-      'Render a bar/line/pie chart in the Web UI from data you already have. Pass either `resultId` (the id a '
+      'Render a bar/stacked-bar/line/pie chart in the Web UI from data you already have. Pass either `resultId` (the id a '
       + 'prior da_run_sql call returned, to chart that result\'s rows without resending them) or `data` (an '
-      + 'inline array of row objects), but not both. `x`/`y` must name columns present in that data.',
+      + 'inline array of row objects), but not both. `x`/`y` must name columns present in that data. For '
+      + '`stacked-bar`, pass multiple `y` columns to stack as segments of each bar.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -41,7 +42,13 @@ export function applyRenderChartTool(ctx: Context): void {
       properties: {
         type: { type: 'string', enum: [...CHART_TYPES] },
         x: { type: 'string' },
-        y: { type: 'string' },
+        y: {
+          oneOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+          description: 'A column name, or an array of column names to plot as multiple series (multiple stacked segments for `stacked-bar`).',
+        },
         resultId: { type: 'string', description: 'A `resultId` from a prior da_run_sql call, scoped to this conversation.' },
         data: { type: 'array', items: { type: 'object', properties: {} }, description: 'Inline row objects, used instead of resultId.' },
       },

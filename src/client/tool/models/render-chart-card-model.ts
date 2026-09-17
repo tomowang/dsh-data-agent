@@ -1,10 +1,10 @@
 import type { JsonScalar, QueryColumn } from '../../../data-source/types.ts'
 import { isSettled, type ToolCallBlock } from '../tool-view-types.ts'
 
-const CHART_TYPES = new Set(['bar', 'line', 'pie'])
+const CHART_TYPES = new Set(['bar', 'stacked-bar', 'line', 'pie'])
 
 export interface ChartSpec {
-  type: 'bar' | 'line' | 'pie'
+  type: 'bar' | 'stacked-bar' | 'line' | 'pie'
   x: string
   y: string | string[]
 }

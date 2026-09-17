@@ -40,7 +40,8 @@ export function Chart({ chart, rows }: { chart: ChartSpec, rows: readonly Record
     )
   }
 
-  if (chart.type === 'bar') {
+  if (chart.type === 'bar' || chart.type === 'stacked-bar') {
+    const stackId = chart.type === 'stacked-bar' ? 'stack' : undefined
     return (
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <BarChart data={[...rows]}>
@@ -49,7 +50,9 @@ export function Chart({ chart, rows }: { chart: ChartSpec, rows: readonly Record
           <YAxis tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          {yColumns.map((y, index) => <Bar key={y} dataKey={y} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
+          {yColumns.map((y, index) => (
+            <Bar key={y} dataKey={y} stackId={stackId} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+          ))}
         </BarChart>
       </ResponsiveContainer>
     )

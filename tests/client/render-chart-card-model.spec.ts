@@ -45,6 +45,15 @@ describe('renderChartCardModel', () => {
     })
   })
 
+  it('parses a well-formed stacked-bar chart with multiple y columns', () => {
+    const meta = {
+      type: 'stacked-bar', x: 'day', y: ['a', 'b'], rowCount: 1, truncated: false,
+      columns: [{ name: 'day' }, { name: 'a' }, { name: 'b' }],
+      rows: [{ day: '2026-09-01', a: 1, b: 2 }],
+    }
+    expect(renderChartCardModel(settled({ meta }))?.chart).toEqual({ type: 'stacked-bar', x: 'day', y: ['a', 'b'] })
+  })
+
   it('parses a well-formed line chart with multiple y columns', () => {
     const meta = {
       type: 'line', x: 'day', y: ['a', 'b'], rowCount: 1, truncated: false,
