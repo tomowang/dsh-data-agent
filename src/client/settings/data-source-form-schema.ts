@@ -49,12 +49,6 @@ const SSL_MODE_OPTIONS: readonly SelectOption[] = [
 
 /** One schema per `Engine` member — the `Record` keeps this exhaustive as engines are added. */
 export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
-  sqlite: {
-    labelKey: 'engineSqlite',
-    fields: [
-      { key: 'database', labelKey: 'fieldFilePath', type: 'text', placeholder: '/path/to/file.db', required: true },
-    ],
-  },
   mysql: {
     labelKey: 'engineMysql',
     fields: [
@@ -82,6 +76,12 @@ export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
         placeholder: '/path/to/ca.pem',
         visibleWhen: values => values.sslmode === 'verify-ca' || values.sslmode === 'verify-full',
       },
+    ],
+  },
+  sqlite: {
+    labelKey: 'engineSqlite',
+    fields: [
+      { key: 'database', labelKey: 'fieldFilePath', type: 'text', placeholder: '/path/to/file.db', required: true },
     ],
   },
   clickhouse: {
