@@ -1,9 +1,16 @@
 import type { JsonScalar, QueryColumn } from '../../../data-source/types.ts'
 import { isSettled, type ToolCallBlock } from '../tool-view-types.ts'
 
-export interface RunSqlCardModel {
-  sourceName: string
-  sql: string
+const CHART_TYPES = new Set(['bar', 'line', 'pie'])
+
+export interface ChartSpec {
+  type: 'bar' | 'line' | 'pie'
+  x: string
+  y: string | string[]
+}
+
+export interface RenderChartCardModel {
+  chart: ChartSpec
   columns: readonly QueryColumn[]
   rows: readonly Record<string, JsonScalar>[]
   rowCount: number
@@ -24,19 +31,21 @@ function isRow(value: unknown): value is Record<string, JsonScalar> {
 }
 
 /**
- * Pure derivation of `da_run_sql`'s card props from `block.meta`. Never trusts
- * the raw wire value without full structural validation (session-log
+ * Pure derivation of `da_render_chart`'s card props from `block.meta`. Never
+ * trusts the raw wire value without full structural validation (session-log
  * replay). Returns `null` for anything malformed or not yet settled.
  */
-export function runSqlCardModel(block: ToolCallBlock): RunSqlCardModel | null {
+export function renderChartCardModel(block: ToolCallBlock): RenderChartCardModel | null {
   if (!isSettled(block) || block.isError) return null
   const meta = block.meta
   if (typeof meta !== 'object' || meta === null) return null
   const record = meta as Record<string, unknown>
 
+  const y = record.y
   if (
-    typeof record.sourceName !== 'string'
-    || typeof record.sql !== 'string'
+    typeof record.type !== 'string' || !CHART_TYPES.has(record.type)
+    || typeof record.x !== 'string'
+    || (typeof y !== 'string' && !(Array.isArray(y) && y.every(entry => typeof entry === 'string')))
     || typeof record.rowCount !== 'number'
     || typeof record.truncated !== 'boolean'
     || !Array.isArray(record.columns)
@@ -48,8 +57,7 @@ export function runSqlCardModel(block: ToolCallBlock): RunSqlCardModel | null {
   }
 
   return {
-    sourceName: record.sourceName,
-    sql: record.sql,
+    chart: { type: record.type as ChartSpec['type'], x: record.x, y },
     columns: record.columns,
     rows: record.rows,
     rowCount: record.rowCount,

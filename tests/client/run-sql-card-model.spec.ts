@@ -30,31 +30,11 @@ describe('runSqlCardModel', () => {
     expect(runSqlCardModel(settled({ meta }))).toBeNull()
   })
 
-  it('parses a well-formed result with no chart', () => {
+  it('parses a well-formed result', () => {
     const meta = {
       sourceName: 'sample', sql: 'SELECT 1 AS x', rowCount: 1, truncated: false,
       columns: [{ name: 'x' }], rows: [{ x: 1 }],
     }
-    expect(runSqlCardModel(settled({ meta }))).toEqual({ ...meta, chart: undefined })
-  })
-
-  it('parses a well-formed result with a bar chart', () => {
-    const meta = {
-      sourceName: 'sample', sql: 'SELECT status, COUNT(*) AS n FROM orders GROUP BY status',
-      rowCount: 2, truncated: false,
-      columns: [{ name: 'status' }, { name: 'n' }],
-      rows: [{ status: 'paid', n: 1 }, { status: 'pending', n: 1 }],
-      chart: { type: 'bar', x: 'status', y: 'n' },
-    }
-    expect(runSqlCardModel(settled({ meta }))?.chart).toEqual({ type: 'bar', x: 'status', y: 'n' })
-  })
-
-  it('drops an unrecognized chart type without failing the whole card', () => {
-    const meta = {
-      sourceName: 'sample', sql: 'SELECT 1 AS x', rowCount: 1, truncated: false,
-      columns: [{ name: 'x' }], rows: [{ x: 1 }],
-      chart: { type: 'scatter', x: 'x', y: 'x' },
-    }
-    expect(runSqlCardModel(settled({ meta }))?.chart).toBeUndefined()
+    expect(runSqlCardModel(settled({ meta }))).toEqual(meta)
   })
 })

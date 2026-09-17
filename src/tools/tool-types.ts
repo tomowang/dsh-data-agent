@@ -33,6 +33,14 @@ export type ToolContentBlock = ToolTextContentBlock
 
 export interface ToolRunContext {
   readonly signal?: AbortSignal
+  /**
+   * The calling conversation, when the call runs inside one. Mirrors the
+   * real harness's `ToolRunContext.agent: Agent | undefined` (`Agent.id` is a
+   * `SessionId`) — narrowed to the one field this plugin needs, so it isn't
+   * `import`ing `@deepseek-ai/dsh-agent` for a single id. Absent for calls
+   * dispatched outside an agent loop (e.g. tests).
+   */
+  readonly agent?: { readonly id: string }
 }
 
 export interface ToolOutputDefinition {

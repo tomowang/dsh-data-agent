@@ -6,7 +6,9 @@ import { applyAddDataSourceTool } from './tools/add-data-source.ts'
 import { applyEditDataSourceTool } from './tools/edit-data-source.ts'
 import { applyGetSchemaTool } from './tools/get-schema.ts'
 import { applyListDataSourcesTool } from './tools/list-data-sources.ts'
+import { QueryResultCache } from './tools/query-result-cache.ts'
 import { applyRemoveDataSourceTool } from './tools/remove-data-source.ts'
+import { applyRenderChartTool } from './tools/render-chart.ts'
 import { applyRunSqlTool } from './tools/run-sql.ts'
 import { applySetCommentTool } from './tools/set-comment.ts'
 import { applySetReadOnlyTool } from './tools/set-read-only.ts'
@@ -25,10 +27,11 @@ export const Config: Schema<Config> = Schema.object({
 
 export function apply(ctx: Context, config: Config): void {
   ctx.plugin(DataSourceRegistry)
+  ctx.plugin(QueryResultCache)
 
   ctx.plugin({
     name: 'dsh-data-agent-tools',
-    inject: ['tools', 'dataAgent'],
+    inject: ['tools', 'dataAgent', 'queryResultCache'],
     apply(toolsCtx: Context) {
       applyAddDataSourceTool(toolsCtx)
       applyEditDataSourceTool(toolsCtx)
@@ -39,6 +42,7 @@ export function apply(ctx: Context, config: Config): void {
       applyGetSchemaTool(toolsCtx)
       applySetCommentTool(toolsCtx)
       applyRunSqlTool(toolsCtx, config.defaultMaxRows)
+      applyRenderChartTool(toolsCtx)
     },
   })
 

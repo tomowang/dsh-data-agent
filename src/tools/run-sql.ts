@@ -2,25 +2,18 @@ import type { Context } from '@deepseek-ai/cordis'
 import { assertSqlAllowed } from '../sql/classify.ts'
 import type { JsonScalar, QueryResult } from '../data-source/types.ts'
 import { renderMarkdownTable } from './shared.ts'
-import { asRecord, optionalNumber, requireEnum, requireString } from './tool-types.ts'
+import { asRecord, optionalNumber, requireString, type ToolRunContext } from './tool-types.ts'
 
 const NAME = 'da_run_sql'
 /** Safety ceiling, not deployment-configurable: unbounded row limits are a stability/security invariant. */
 const HARD_MAX_ROWS = 5000
 const RENDER_PREVIEW_ROWS = 50
 const PRESENTATION_ROW_CAP = 200
-const CHART_TYPES = ['bar', 'line', 'pie'] as const
-
-interface ChartSpec {
-  type: (typeof CHART_TYPES)[number]
-  x: string
-  y: string | string[]
-}
 
 interface RunSqlValue extends QueryResult {
   sourceName: string
   sql: string
-  chart?: ChartSpec
+  resultId?: string
 }
 
 function parseParams(args: Record<string, unknown>): JsonScalar[] | undefined {
@@ -35,30 +28,6 @@ function parseParams(args: Record<string, unknown>): JsonScalar[] | undefined {
   return value as JsonScalar[]
 }
 
-function parseChart(args: Record<string, unknown>, columns: readonly { name: string }[]): ChartSpec | undefined {
-  const raw = args.chart
-  if (raw === undefined) return undefined
-  if (typeof raw !== 'object' || raw === null) throw new Error(`${NAME}: "chart" must be an object`)
-  const chart = raw as Record<string, unknown>
-  const type = requireEnum(chart, 'type', CHART_TYPES, NAME)
-  const x = requireString(chart, 'x', NAME)
-  const yRaw = chart.y
-  const y = typeof yRaw === 'string' ? yRaw : Array.isArray(yRaw) ? yRaw : undefined
-  if (y === undefined || (Array.isArray(y) && y.some(entry => typeof entry !== 'string'))) {
-    throw new Error(`${NAME}: "chart.y" is required and must be a string or an array of strings`)
-  }
-
-  const names = new Set(columns.map(column => column.name))
-  const yColumns = Array.isArray(y) ? y : [y]
-  for (const column of [x, ...yColumns]) {
-    if (!names.has(column)) {
-      throw new Error(`${NAME}: chart column "${column}" is not among the query's result columns`)
-    }
-  }
-
-  return { type, x, y }
-}
-
 export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
   ctx.tools.register({
     name: NAME,
@@ -68,8 +37,8 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
       + 'allowed — toggle with da_set_read_only to run writes. Bind parameters with the target engine\'s native '
       + 'placeholder syntax: `?` for MySQL/SQLite, `$1, $2, ...` for PostgreSQL, `{p1:Type}, {p2:Type}, ...` for '
       + 'ClickHouse (named parameters, bound positionally to `params` — e.g. `{p1:String}` for the first entry). '
-      + 'Pass `chart` to additionally render a bar/line/pie chart of the result in the Web UI (x/y must name columns '
-      + 'in the result).',
+      + 'The result carries a `resultId` you can pass to da_render_chart\'s `resultId` to chart it without '
+      + 're-sending the rows.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -79,15 +48,6 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
         sql: { type: 'string' },
         params: { type: 'array', items: {}, description: 'Bind parameters, in order.' },
         maxRows: { type: 'number', description: `Defaults to ${defaultMaxRows}, capped at ${HARD_MAX_ROWS}.` },
-        chart: {
-          type: 'object',
-          required: ['type', 'x', 'y'],
-          properties: {
-            type: { type: 'string', enum: [...CHART_TYPES] },
-            x: { type: 'string' },
-            y: { type: 'string' },
-          },
-        },
       },
     },
     output: {
@@ -101,10 +61,7 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
           rows: { type: 'array', items: { type: 'object', properties: {} } },
           rowCount: { type: 'number' },
           truncated: { type: 'boolean' },
-          chart: {
-            type: 'object',
-            properties: { type: { type: 'string' }, x: { type: 'string' }, y: {} },
-          },
+          resultId: { type: 'string' },
         },
       },
       render(_args, value) {
@@ -115,7 +72,9 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
           totalRowCount: result.rowCount,
         })
         const lines = [table]
-        if (result.chart !== undefined) lines.push('\n_(a chart of this result renders in the Web UI)_')
+        if (result.resultId !== undefined) {
+          lines.push(`\n_(resultId: \`${result.resultId}\` — pass to da_render_chart's \`resultId\` to chart this result)_`)
+        }
         return [{ type: 'text', text: lines.join('\n') }]
       },
       presentationMeta(_args, value) {
@@ -123,7 +82,7 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
         return { ...result, rows: result.rows.slice(0, PRESENTATION_ROW_CAP) }
       },
     },
-    async execute(rawArgs): Promise<RunSqlValue> {
+    async execute(rawArgs, exec: ToolRunContext): Promise<RunSqlValue> {
       const args = asRecord(rawArgs, NAME)
       const sourceName = requireString(args, 'sourceName', NAME)
       const sql = requireString(args, 'sql', NAME)
@@ -136,9 +95,9 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
 
       const adapter = await ctx.dataAgent.getAdapter(sourceName)
       const result = await adapter.runQuery(sql, { params, maxRows })
-      const chart = parseChart(args, result.columns)
+      const resultId = ctx.queryResultCache.put(exec.agent?.id, { sourceName, sql, ...result })
 
-      return { sourceName, sql, ...result, ...(chart !== undefined ? { chart } : {}) }
+      return { sourceName, sql, ...result, ...(resultId !== undefined ? { resultId } : {}) }
     },
   })
 }
