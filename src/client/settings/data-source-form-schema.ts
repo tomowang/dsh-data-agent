@@ -22,6 +22,8 @@ export interface FieldSpec {
   readonly type: FieldType
   readonly placeholder?: string
   readonly required?: boolean
+  /** Rendered as a hover/focus tooltip next to the label. */
+  readonly tooltipKey?: DataSourcesSettingsLocaleKey
   /** `select` only. */
   readonly options?: readonly SelectOption[]
   readonly defaultValue?: string | boolean
@@ -59,7 +61,7 @@ export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
       { key: 'host', labelKey: 'fieldHost', type: 'text', placeholder: 'host' },
       { key: 'port', labelKey: 'fieldPort', type: 'number', placeholder: 'port', defaultValue: '3306' },
       { key: 'user', labelKey: 'fieldUser', type: 'text', placeholder: 'user' },
-      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
+      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD', tooltipKey: 'fieldPasswordEnvTooltip' },
       { key: 'database', labelKey: 'fieldDatabase', type: 'text', placeholder: 'database name', required: true },
       { key: 'ssl', labelKey: 'fieldSsl', type: 'switch', defaultValue: false },
     ],
@@ -70,7 +72,7 @@ export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
       { key: 'host', labelKey: 'fieldHost', type: 'text', placeholder: 'host' },
       { key: 'port', labelKey: 'fieldPort', type: 'number', placeholder: 'port', defaultValue: '5432' },
       { key: 'user', labelKey: 'fieldUser', type: 'text', placeholder: 'user' },
-      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
+      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD', tooltipKey: 'fieldPasswordEnvTooltip' },
       { key: 'database', labelKey: 'fieldDatabase', type: 'text', placeholder: 'database name', required: true },
       { key: 'sslmode', labelKey: 'fieldSslMode', type: 'select', defaultValue: 'disable', options: SSL_MODE_OPTIONS },
       {
@@ -88,7 +90,7 @@ export const ENGINE_FORM_SCHEMAS: Record<Engine, EngineFormSchema> = {
       { key: 'host', labelKey: 'fieldHost', type: 'text', placeholder: 'host' },
       { key: 'port', labelKey: 'fieldPort', type: 'number', placeholder: 'port', defaultValue: '8123' },
       { key: 'user', labelKey: 'fieldUser', type: 'text', placeholder: 'user' },
-      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD' },
+      { key: 'passwordEnv', labelKey: 'fieldPasswordEnv', type: 'text', placeholder: 'e.g. PROD_DB_PASSWORD', tooltipKey: 'fieldPasswordEnvTooltip' },
       { key: 'database', labelKey: 'fieldDatabase', type: 'text', placeholder: 'database name', required: true },
       { key: 'ssl', labelKey: 'fieldSsl', type: 'switch', defaultValue: false },
     ],

@@ -10,7 +10,7 @@ export type DataSourcesSettingsLocaleKey =
   | 'nav' | 'title' | 'pluginDescription' | 'tabDataSources' | 'tabTools' | 'intro' | 'loading' | 'empty'
   | 'toolsIntro' | 'toolsEmpty'
   | 'engineSqlite' | 'engineMysql' | 'enginePostgres' | 'engineClickhouse'
-  | 'fieldFilePath' | 'fieldHost' | 'fieldPort' | 'fieldUser' | 'fieldPasswordEnv'
+  | 'fieldFilePath' | 'fieldHost' | 'fieldPort' | 'fieldUser' | 'fieldPasswordEnv' | 'fieldPasswordEnvTooltip'
   | 'fieldDatabase' | 'fieldSsl' | 'fieldSslMode' | 'fieldCaCertPath'
   | 'fieldEngine' | 'fieldName' | 'fieldDescription'
   | 'sslModeDisable' | 'sslModeAllow' | 'sslModePrefer'
@@ -42,6 +42,7 @@ export const en: Record<DataSourcesSettingsLocaleKey, string> = {
   fieldPort: 'Port',
   fieldUser: 'User',
   fieldPasswordEnv: 'Password env var',
+  fieldPasswordEnvTooltip: 'Name of an environment variable on the host process holding the password. The password itself is never stored or sent here.',
   fieldDatabase: 'Database',
   fieldSsl: 'SSL',
   fieldSslMode: 'SSL mode',
@@ -99,6 +100,7 @@ export const zh: Record<DataSourcesSettingsLocaleKey, string> = {
   fieldPort: '端口',
   fieldUser: '用户',
   fieldPasswordEnv: '密码环境变量',
+  fieldPasswordEnvTooltip: '存放密码的宿主进程环境变量名称。密码本身不会被存储或发送到此处。',
   fieldDatabase: '数据库',
   fieldSsl: 'SSL',
   fieldSslMode: 'SSL 模式',

@@ -90,6 +90,8 @@ const CSS = `
 .dsh-da-fieldGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .dsh-da-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .dsh-da-fieldLabel { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--dsw-alias-label-secondary); }
+.dsh-da-fieldLabelRow { display: flex; align-items: center; gap: 4px; }
+.dsh-da-fieldTooltipIcon { display: inline-flex; flex: none; line-height: 0; color: var(--dsw-alias-label-tertiary); cursor: help; }
 .dsh-da-switchRow { display: flex; align-items: center; gap: 8px; }
 .dsh-da-switchLabel { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
 .dsh-da-editorActions { display: flex; justify-content: flex-end; gap: 8px; }

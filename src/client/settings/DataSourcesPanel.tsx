@@ -4,6 +4,7 @@ import {
   IconDatabaseOutline16,
   IconEditOutline16,
   IconPlusOutline16,
+  IconQuestionOutline14,
   IconRefreshOutline16,
   IconTrashOutline16,
   Input,
@@ -12,6 +13,7 @@ import {
   StateDot,
   Switch,
   Tag,
+  Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionTestResult, DataSourceRecord, Engine, SchemaResult } from '../../data-source/types.ts'
 import { SchemaTree } from '../shared/SchemaTree.tsx'
@@ -33,6 +35,22 @@ import type { DataSourcesSettingsLocaleKey } from './locales.ts'
 /** Translate a dictionary key of this section's own namespace (framework-injected standard seat). */
 type T = (key: DataSourcesSettingsLocaleKey, params?: Record<string, unknown>) => string
 
+/** Field label, plus a hover/focus tooltip icon when the field defines one. */
+function FieldLabel({ field, t }: { field: FieldSpec, t: T }): React.ReactElement {
+  const label = <span className="dsh-da-fieldLabel">{t(field.labelKey)}</span>
+  if (field.tooltipKey === undefined) return label
+  return (
+    <span className="dsh-da-fieldLabelRow">
+      {label}
+      <Tooltip label={t(field.tooltipKey)} side="top" maxWidth={240}>
+        <span className="dsh-da-fieldTooltipIcon" tabIndex={0}>
+          <IconQuestionOutline14 />
+        </span>
+      </Tooltip>
+    </span>
+  )
+}
+
 function FormField({ field, value, onChange, t }: {
   field: FieldSpec
   value: string | boolean | undefined
@@ -50,7 +68,7 @@ function FormField({ field, value, onChange, t }: {
   if (field.type === 'select') {
     return (
       <label className="dsh-da-field">
-        <span className="dsh-da-fieldLabel">{t(field.labelKey)}</span>
+        <FieldLabel field={field} t={t} />
         <select className="dsh-da-selectInput" value={String(value ?? '')} onChange={e => onChange(e.target.value)}>
           {field.options?.map(option => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
         </select>
@@ -59,7 +77,7 @@ function FormField({ field, value, onChange, t }: {
   }
   return (
     <label className="dsh-da-field">
-      <span className="dsh-da-fieldLabel">{t(field.labelKey)}</span>
+      <FieldLabel field={field} t={t} />
       <Input
         placeholder={field.placeholder}
         value={String(value ?? '')}
