@@ -1,5 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { QueryColumn, QueryRow } from '../data-source/types.ts'
+import { renderChartImageUrl } from './chart-image.ts'
 import { CHART_TYPES, assertAxesInColumns, parseInlineData, type ChartType } from './chart-spec.ts'
 import { renderMarkdownTable } from './shared.ts'
 import { asRecord, requireEnum, requireString, ToolInputError, type ToolRunContext } from './tool-types.ts'
@@ -18,6 +19,7 @@ interface RenderChartValue {
   truncated: boolean
   sourceName?: string
   sql?: string
+  imageUrl?: string
 }
 
 function parseY(args: Record<string, unknown>): string | string[] {
@@ -34,7 +36,10 @@ export function applyRenderChartTool(ctx: Context): void {
       'Render a bar/stacked-bar/line/pie chart in the Web UI from data you already have. Pass either `resultId` (the id a '
       + 'prior da_run_sql call returned, to chart that result\'s rows without resending them) or `data` (an '
       + 'inline array of row objects), but not both. `x`/`y` must name columns present in that data. For '
-      + '`stacked-bar`, pass multiple `y` columns to stack as segments of each bar.',
+      + '`stacked-bar`, pass multiple `y` columns to stack as segments of each bar. The result also includes '
+      + '`imageUrl`, a static PNG of the same chart — embed it in your reply as Markdown (`![](imageUrl)`) '
+      + 'wherever a picture of the chart should appear in your own text, alongside the interactive chart the Web UI '
+      + 'already renders from this call.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -67,6 +72,7 @@ export function applyRenderChartTool(ctx: Context): void {
           truncated: { type: 'boolean' },
           sourceName: { type: 'string' },
           sql: { type: 'string' },
+          imageUrl: { type: 'string' },
         },
       },
       render(_args, value) {
@@ -76,7 +82,12 @@ export function applyRenderChartTool(ctx: Context): void {
           limit: RENDER_PREVIEW_ROWS,
           totalRowCount: result.rowCount,
         })
-        return [{ type: 'text', text: `${table}\n\n_(a chart of this data renders in the Web UI)_` }]
+        const yLabel = Array.isArray(result.y) ? result.y.join(', ') : result.y
+        const note = result.imageUrl === undefined
+          ? '_(a chart of this data renders in the Web UI)_'
+          : `_(a chart of this data renders in the Web UI)_ — to show it in your reply: `
+            + `![${result.type} chart of ${yLabel} by ${result.x}](${result.imageUrl})`
+        return [{ type: 'text', text: `${table}\n\n${note}` }]
       },
       presentationMeta(_args, value) {
         const result = value as RenderChartValue
@@ -98,7 +109,8 @@ export function applyRenderChartTool(ctx: Context): void {
       if (hasData) {
         const { columns, rows } = parseInlineData(NAME, args.data)
         assertAxesInColumns(NAME, columns, x, y)
-        return { type, x, y, columns, rows, rowCount: rows.length, truncated: false }
+        const imageUrl = await renderChartImageUrl(ctx, type, x, y, rows)
+        return { type, x, y, columns, rows, rowCount: rows.length, truncated: false, ...(imageUrl !== undefined && { imageUrl }) }
       }
 
       const resultId = requireString(args, 'resultId', NAME)
@@ -110,6 +122,7 @@ export function applyRenderChartTool(ctx: Context): void {
         )
       }
       assertAxesInColumns(NAME, cached.columns, x, y)
+      const imageUrl = await renderChartImageUrl(ctx, type, x, y, cached.rows)
       return {
         type, x, y,
         columns: [...cached.columns],
@@ -118,6 +131,7 @@ export function applyRenderChartTool(ctx: Context): void {
         truncated: cached.truncated,
         sourceName: cached.sourceName,
         sql: cached.sql,
+        ...(imageUrl !== undefined && { imageUrl }),
       }
     },
   })

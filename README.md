@@ -8,7 +8,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 - **Connection checks & schema browsing** — `da_test_connection` and `da_get_schema` (database overview or full column detail for one table), rendered as a Markdown table in chat and as a rich, expandable browser in both the chat card and the Settings schema viewer.
 - **Table/column comments** — `da_set_comment` from chat, or click-to-edit inline in the Settings schema viewer; both write to the same store.
 - **SQL execution with a read-only toggle** — `da_run_sql`, AST-verified (not string-matched) to reject write statements on a read-only source and to always reject statement-stacking. Toggle a source's read-only flag anytime with `da_set_read_only` (or the checkbox in Settings).
-- **Charts** — `da_render_chart` renders a `recharts` bar/stacked-bar/line/pie chart from either `data` (inline rows) or `resultId` (a prior `da_run_sql` call's result, referenced by id instead of resent — cached in memory per conversation for 30 minutes).
+- **Charts** — `da_render_chart` renders a `chart.js` bar/stacked-bar/line/pie chart from either `data` (inline rows) or `resultId` (a prior `da_run_sql` call's result, referenced by id instead of resent — cached in memory per conversation for 30 minutes). Alongside the interactive Web UI chart, it also rasterizes a static PNG server-side (via `skia-canvas`) and returns a URL to it, so the chart can be embedded as a Markdown image in the model's own reply.
 
 Secrets are never stored directly: connections reference a `passwordEnv` (an environment variable **name**), resolved at connect time via the harness's `ctx.credentials` seam when mounted, else `process.env`.
 
@@ -42,7 +42,7 @@ pnpm run test
 
 ```
 src/
-  index.ts                composition root: Config, apply() — mounts the registry, tools, and the Settings-API routes
+  index.ts                composition root: Config, apply() — mounts the registry, tools, the Settings-API routes, and the chart-image route
   data-source/
     types.ts, errors.ts   shared vocabulary and stable error codes
     registry.ts           DataSourceRegistry (ctx.dataAgent): the Map-based connection registry
@@ -51,7 +51,9 @@ src/
     persistence/          sources.json / comments.json (atomic, cross-process-safe)
     adapters/              one DataSourceAdapter implementation per engine (mysql2, pg, node:sqlite, @clickhouse/client)
   sql/classify.ts         node-sql-parser-based read-only + single-statement enforcement
-  tools/                  the ten model-facing tools (one file each), plus QueryResultCache (ctx.queryResultCache)
+  tools/                  the ten model-facing tools (one file each), plus QueryResultCache (ctx.queryResultCache),
+                          chart-config.ts (shared chart.js config builder), and the chart-image render/store/route
+                          backing da_render_chart's static PNG output (ctx.chartImageStore)
   settings-api/           raw ctx.webServer routes + Origin trust check backing the Settings panel
 src/client/                the browser bundle (see below)
   index.ts                client plugin entry: registers the three chat toolviews + the Settings section

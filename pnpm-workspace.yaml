@@ -5,3 +5,4 @@ packages:
 # platform binary; pnpm 10+ blocks unreviewed install scripts by default.
 allowBuilds:
   esbuild: true
+  skia-canvas: true
