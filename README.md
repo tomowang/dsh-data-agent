@@ -12,6 +12,14 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 
 Secrets are never stored directly: connections reference a `passwordEnv` (an environment variable **name**), resolved at connect time via the harness's `ctx.credentials` seam when mounted, else `process.env`.
 
+## Demo
+
+https://github.com/tomowang/dsh-data-agent/raw/main/assets/demo.mp4
+
+Connections, schema, and read-only toggling are also manageable straight from Settings → Data Agent:
+
+![Settings → Data Agent panel](assets/settings-panel.png)
+
 ## Install
 
 Requires a `web` profile already booted at least once (`dsh --profile web`).
@@ -44,6 +52,10 @@ Scripts:
 - `pnpm run build` — build both halves to `lib/` (`build:host` + `build:client`)
 - `pnpm run build:host` / `build:client` (or `watch:host` / `watch:client`, or plain `watch` for both at once) — build one half only
 - `pnpm run dev` — build both halves and link this plugin into the local `web` profile (see below)
+
+### Architecture
+
+![dsh-data-agent architecture diagram](assets/architecture.png)
 
 ### Project layout
 
