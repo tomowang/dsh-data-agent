@@ -18,7 +18,7 @@ Secrets are never stored directly: connections reference a `passwordEnv` (an env
 
 ## Demo
 
-https://github.com/tomowang/dsh-data-agent/raw/main/assets/demo.mp4
+https://github.com/user-attachments/assets/fa149214-cdd0-4820-9711-8e7451bb462f
 
 Connections, schema, and read-only toggling are also manageable straight from Settings → Data Agent:
 
