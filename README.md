@@ -41,6 +41,13 @@ dsh plugin --profile web approve-builds
 
 `dsh` reconciles the profile manifest's `dsh.profile.bundles` list automatically (this package declares `dsh.bundle.patch`), fetching the published npm package — no local checkout or build step needed. Restart the `web` profile process to pick it up.
 
+### Installing from the dsh-market
+
+Alternatively, you can install `@tomowang/dsh-data-agent` from the [dsh-market](https://github.com/dsh-market/dsh-market) in the Web UI.
+Search `tomowang/dsh-data-agent`, and click **Install** on the result.
+
+![Installing dsh-data-agent from the dsh-market](assets/dshmarket.png)
+
 ## Develop
 
 ```sh
