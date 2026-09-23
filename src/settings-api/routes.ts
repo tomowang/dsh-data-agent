@@ -138,8 +138,12 @@ export function applySettingsApiRoutes(ctx: Context): void {
   ctx.webServer.register({
     kind: 'exact',
     path: `${ROUTE_PREFIX}/set-read-only`,
-    handler: jsonRoute(ctx, async (_req, body) =>
-      ctx.dataAgent.setReadOnly(String(body.name ?? ''), Boolean(body.readOnly))),
+    // A strict boolean, never a coercion: `Boolean(undefined)` would silently
+    // turn a malformed request into "make this source read-write".
+    handler: jsonRoute(ctx, async (_req, body) => {
+      if (typeof body.readOnly !== 'boolean') throw new Error('"readOnly" is required and must be a boolean')
+      return ctx.dataAgent.setReadOnly(String(body.name ?? ''), body.readOnly)
+    }),
   })
 
   ctx.webServer.register({

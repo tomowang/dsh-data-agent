@@ -18,7 +18,7 @@ export function RunSqlRow({ block }: ToolRowProps): React.ReactElement {
     <div>
       <DataTable columns={result.columns.map(column => column.name)} rows={result.rows} />
       {result.truncated && (
-        <p style={{ fontSize: 12, opacity: 0.7 }}>(showing {result.rows.length} of {result.rowCount} rows)</p>
+        <p style={{ fontSize: 12, opacity: 0.7 }}>(showing {result.rows.length} of {result.rowCount}+ rows)</p>
       )}
     </div>
   )

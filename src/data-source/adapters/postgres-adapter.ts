@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import type { Context } from '@deepseek-ai/cordis'
 import pg from 'pg'
+import Cursor from 'pg-cursor'
 import { resolveSecret } from '../credential.ts'
 import { CONNECTION_FAILED_CODE, DataAgentError, TABLE_NOT_FOUND_CODE } from '../errors.ts'
 import { resolvePostgresSslAttempts } from './postgres-ssl.ts'
@@ -15,7 +16,7 @@ import type {
   SchemaResult,
   TableInfo,
 } from '../types.ts'
-import { toJsonRow } from './adapter.ts'
+import { QUERY_TIMEOUT_MS, toJsonRow } from './adapter.ts'
 
 const DEFAULT_MAX_TABLES = 200
 const DEFAULT_MAX_COLUMNS = 1000
@@ -32,6 +33,16 @@ interface ColumnRow {
 interface TableRow {
   table_name: string
   comment: string | null
+}
+
+/** One `read` of up to `limit` rows, with the field list `Cursor#read`'s promise form drops. */
+function readCursor(cursor: Cursor, limit: number): Promise<{ rows: Record<string, unknown>[], fields: pg.FieldDef[] }> {
+  return new Promise((resolve, reject) => {
+    cursor.read(limit, (error, rows, result) => {
+      if (error !== undefined && error !== null) reject(error)
+      else resolve({ rows: rows as Record<string, unknown>[], fields: result.fields ?? [] })
+    })
+  })
 }
 
 /** PostgreSQL via `pg` — pure JS, no native compilation. */
@@ -60,6 +71,7 @@ export class PostgresAdapter implements DataSourceAdapter {
         database: this.record.database,
         ssl,
         max: 3,
+        statement_timeout: QUERY_TIMEOUT_MS,
       })
       try {
         await pool.query('SELECT 1')
@@ -137,13 +149,34 @@ export class PostgresAdapter implements DataSourceAdapter {
     return { sourceName: this.record.name, engine: 'postgres', scope: 'database', tables, truncated }
   }
 
+  /**
+   * Reads through a cursor so at most `maxRows + 1` rows ever leave the
+   * server. A read-only source runs inside `BEGIN READ ONLY` ... `ROLLBACK`:
+   * PostgreSQL itself then rejects any write the AST gate missed (`SELECT
+   * setval(...)`, `SELECT INTO`, ...), and the explicit per-query transaction
+   * can't be switched off from inside the query (e.g. via `set_config`) the
+   * way a session-level default could.
+   */
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {
-    const result = await this.pool().query(sql, (options.params ?? []) as unknown[])
-    const rowArray = result.rows as Record<string, unknown>[]
-    const truncated = rowArray.length > options.maxRows
-    const limited = rowArray.slice(0, options.maxRows).map(toJsonRow)
-    const columns = result.fields.map(field => ({ name: field.name }))
-    return { columns, rows: limited, rowCount: rowArray.length, truncated }
+    const client = await this.pool().connect()
+    let broken = false
+    try {
+      if (this.record.readOnly) await client.query('BEGIN READ ONLY')
+      const cursor = client.query(new Cursor(sql, [...(options.params ?? [])]))
+      try {
+        const { rows, fields } = await readCursor(cursor, options.maxRows + 1)
+        const truncated = rows.length > options.maxRows
+        const limited = rows.slice(0, options.maxRows).map(toJsonRow)
+        const columns = fields.map(field => ({ name: field.name }))
+        return { columns, rows: limited, rowCount: limited.length, truncated }
+      } finally {
+        await cursor.close().catch(() => {})
+      }
+    } finally {
+      if (this.record.readOnly) await client.query('ROLLBACK').catch(() => { broken = true })
+      // A failed ROLLBACK leaves the connection in an unknown transaction state: discard it.
+      client.release(broken)
+    }
   }
 
   async close(): Promise<void> {

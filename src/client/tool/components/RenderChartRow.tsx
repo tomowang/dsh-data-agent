@@ -21,7 +21,7 @@ export function RenderChartRow({ block }: ToolRowProps): React.ReactElement {
       <Chart chart={result.chart} rows={result.rows} />
       <DataTable columns={result.columns.map(column => column.name)} rows={result.rows} />
       {result.truncated && (
-        <p style={{ fontSize: 12, opacity: 0.7 }}>(showing {result.rows.length} of {result.rowCount} rows)</p>
+        <p style={{ fontSize: 12, opacity: 0.7 }}>(showing {result.rows.length} of {result.rowCount}+ rows)</p>
       )}
     </div>
   )

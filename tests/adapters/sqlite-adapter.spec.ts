@@ -77,12 +77,12 @@ describe('SqliteAdapter', () => {
     await adapter.close()
   })
 
-  it('truncates rows beyond maxRows and reports the full rowCount', async () => {
+  it('stops reading past maxRows, reporting the rows returned and that more exist', async () => {
     const adapter = new SqliteAdapter(record())
     await adapter.connect()
     const result = await adapter.runQuery('SELECT * FROM customers ORDER BY id', { maxRows: 1 })
     expect(result.rows).toHaveLength(1)
-    expect(result.rowCount).toBe(2)
+    expect(result.rowCount).toBe(1)
     expect(result.truncated).toBe(true)
     await adapter.close()
   })

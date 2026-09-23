@@ -6,6 +6,15 @@ import { MysqlAdapter } from './mysql-adapter.ts'
 import { PostgresAdapter } from './postgres-adapter.ts'
 import { ClickhouseAdapter } from './clickhouse-adapter.ts'
 
+/**
+ * Per-query time limit for the network engines, enforced by the server
+ * (PostgreSQL `statement_timeout`) or the driver (MySQL/ClickHouse). Not
+ * deployment-configurable, same as run-sql's `HARD_MAX_ROWS`: an unbounded
+ * query is a stability invariant, not a preference. SQLite has no equivalent —
+ * `node:sqlite` runs synchronously with no interrupt hook.
+ */
+export const QUERY_TIMEOUT_MS = 30_000
+
 /** Coerce one driver-returned cell into a JSON-safe scalar. */
 export function toJsonScalar(value: unknown): JsonScalar {
   if (value === null || value === undefined) return null

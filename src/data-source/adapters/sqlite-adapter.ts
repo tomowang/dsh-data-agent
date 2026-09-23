@@ -101,11 +101,21 @@ export class SqliteAdapter implements DataSourceAdapter {
     const db = this.database()
     const stmt = db.prepare(sql)
     const params = (options.params ?? []) as (string | number | null)[]
-    const rows = stmt.all(...params) as Record<string, unknown>[]
+    const columns = stmt.columns().map(column => ({ name: column.name }))
+    if (columns.length === 0) {
+      stmt.run(...params)
+      return { columns, rows: [], rowCount: 0, truncated: false }
+    }
+
+    // Step one row past the cap, then stop — never materialize the whole result.
+    const rows: Record<string, unknown>[] = []
+    for (const row of stmt.iterate(...params)) {
+      rows.push(row as Record<string, unknown>)
+      if (rows.length > options.maxRows) break
+    }
     const truncated = rows.length > options.maxRows
     const limited = rows.slice(0, options.maxRows).map(toJsonRow)
-    const columns = stmt.columns().map(column => ({ name: column.name }))
-    return { columns, rows: limited, rowCount: rows.length, truncated }
+    return { columns, rows: limited, rowCount: limited.length, truncated }
   }
 
   async close(): Promise<void> {

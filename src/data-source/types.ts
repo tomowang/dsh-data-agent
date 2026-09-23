@@ -82,6 +82,11 @@ export type QueryRow = Record<string, JsonScalar>
 export interface QueryResult {
   readonly columns: readonly QueryColumn[]
   readonly rows: readonly QueryRow[]
+  /**
+   * Rows fetched (== `rows.length`). Adapters stop reading one row past
+   * `maxRows`, so a truncated result's true size is unknown — only that
+   * more rows exist (`truncated`).
+   */
   readonly rowCount: number
   readonly truncated: boolean
 }

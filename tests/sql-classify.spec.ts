@@ -55,4 +55,46 @@ describe('assertSqlAllowed', () => {
   it('allows EXPLAIN on mysql', () => {
     expect(() => assertSqlAllowed('EXPLAIN SELECT 1', 'mysql', true)).not.toThrow()
   })
+
+  describe('read-only escapes that parse as a plain SELECT', () => {
+    it('rejects SELECT ... INTO a new table on postgres', () => {
+      expect(() => assertSqlAllowed('SELECT * INTO newtab FROM orders', 'postgres', true)).toThrow(/INTO/)
+    })
+
+    it('rejects SELECT ... INTO OUTFILE on mysql', () => {
+      expect(() => assertSqlAllowed('SELECT * FROM orders INTO OUTFILE \'/tmp/x\'', 'mysql', true)).toThrow(/INTO/)
+    })
+
+    it('rejects SELECT ... INTO inside a subquery', () => {
+      expect(() =>
+        assertSqlAllowed('SELECT * FROM (SELECT * FROM orders INTO OUTFILE \'/tmp/x\') t', 'mysql', true),
+      ).toThrow()
+    })
+
+    it('rejects MySQL executable comments, whose contents the parser never sees', () => {
+      expect(() => assertSqlAllowed('SELECT 1 /*! INTO OUTFILE \'/tmp/y\' */', 'mysql', true)).toThrow(/executable comments/)
+      expect(() => assertSqlAllowed('SELECT 1 /*M!100000 INTO OUTFILE \'/tmp/y\' */', 'mysql', true)).toThrow()
+    })
+
+    it('still allows plain comments on mysql', () => {
+      expect(() => assertSqlAllowed('SELECT 1 /* note */', 'mysql', true)).not.toThrow()
+    })
+
+    it('rejects external-access ClickHouse table functions, including nested ones', () => {
+      expect(() => assertSqlAllowed('SELECT * FROM url(\'http://169.254.169.254/\', CSV)', 'clickhouse', true)).toThrow(/url/)
+      expect(() => assertSqlAllowed('SELECT * FROM (SELECT * FROM file(\'/etc/passwd\')) x', 'clickhouse', true)).toThrow(/file/)
+      expect(() =>
+        assertSqlAllowed('SELECT * FROM orders o JOIN postgresql(\'h:5432\', \'db\', \'t\', \'u\', \'p\') p ON 1 = 1', 'clickhouse', true),
+      ).toThrow(/postgresql/)
+    })
+
+    it('allows local data-generating ClickHouse table functions', () => {
+      expect(() => assertSqlAllowed('SELECT * FROM numbers(10)', 'clickhouse', true)).not.toThrow()
+    })
+
+    it('does not apply these checks to a read-write source', () => {
+      expect(() => assertSqlAllowed('SELECT * INTO newtab FROM orders', 'postgres', false)).not.toThrow()
+      expect(() => assertSqlAllowed('SELECT * FROM url(\'http://x\', CSV)', 'clickhouse', false)).not.toThrow()
+    })
+  })
 })

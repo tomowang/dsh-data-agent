@@ -1,4 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
+import type { Connection as CoreConnection, FieldPacket } from 'mysql2'
 import mysql from 'mysql2/promise'
 import { resolveSecret } from '../credential.ts'
 import { CONNECTION_FAILED_CODE, DataAgentError, TABLE_NOT_FOUND_CODE } from '../errors.ts'
@@ -13,7 +14,7 @@ import type {
   SchemaResult,
   TableInfo,
 } from '../types.ts'
-import { toJsonRow } from './adapter.ts'
+import { QUERY_TIMEOUT_MS, toJsonRow } from './adapter.ts'
 
 const DEFAULT_MAX_TABLES = 200
 const DEFAULT_MAX_COLUMNS = 1000
@@ -29,6 +30,48 @@ interface ColumnRow {
 interface TableRow {
   TABLE_NAME: string
   TABLE_COMMENT: string
+}
+
+interface StreamedRows {
+  rows: Record<string, unknown>[]
+  fields: FieldPacket[]
+  /** False when reading stopped at `limit` with the rest of the result still unread on the wire. */
+  complete: boolean
+}
+
+/**
+ * Run `sql` on a core (callback-API) connection, collecting at most `limit`
+ * rows. A statement with no result set (INSERT/UPDATE/...) emits its OK
+ * packet as a `result` before any `fields` — that's not a row, so it's skipped.
+ */
+function streamRows(connection: CoreConnection, sql: string, values: unknown[], limit: number): Promise<StreamedRows> {
+  return new Promise((resolve, reject) => {
+    const rows: Record<string, unknown>[] = []
+    let fields: FieldPacket[] | undefined
+    let settled = false
+    const query = connection.query({ sql, values, timeout: QUERY_TIMEOUT_MS })
+    query.on('fields', (received: FieldPacket[] | undefined) => {
+      fields = received ?? []
+    })
+    query.on('result', (row: unknown) => {
+      if (settled || fields === undefined) return
+      rows.push(row as Record<string, unknown>)
+      if (rows.length >= limit) {
+        settled = true
+        resolve({ rows, fields, complete: false })
+      }
+    })
+    query.on('error', (error: Error) => {
+      if (settled) return
+      settled = true
+      reject(error)
+    })
+    query.on('end', () => {
+      if (settled) return
+      settled = true
+      resolve({ rows, fields: fields ?? [], complete: true })
+    })
+  })
 }
 
 /** MySQL/MariaDB via `mysql2/promise` — pure JS, no native compilation. */
@@ -126,13 +169,37 @@ export class MysqlAdapter implements DataSourceAdapter {
     return { sourceName: this.record.name, engine: 'mysql', scope: 'database', tables, truncated }
   }
 
+  /**
+   * Streams rows and stops one past `maxRows`. A read-only source runs inside
+   * `START TRANSACTION READ ONLY` ... `ROLLBACK`, so MySQL itself rejects any
+   * table write the AST gate missed. The connection is destroyed rather than
+   * returned to the pool whenever it may be mid-result (stopped early) or in
+   * an unknown state (any error, including mysql2's own timeout, which
+   * destroys it anyway).
+   */
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {
-    const [rows, fields] = await this.pool().query(sql, [...(options.params ?? [])])
-    const rowArray = rows as Record<string, unknown>[]
-    const truncated = rowArray.length > options.maxRows
-    const limited = rowArray.slice(0, options.maxRows).map(toJsonRow)
-    const columns = (fields ?? []).map(field => ({ name: field.name }))
-    return { columns, rows: limited, rowCount: rowArray.length, truncated }
+    const connection = await this.pool().getConnection()
+    let reusable = false
+    try {
+      if (this.record.readOnly) await connection.query('START TRANSACTION READ ONLY')
+      const { rows, fields, complete } = await streamRows(
+        // Typed as the promise wrapper, but at runtime mysql2's PromiseConnection
+        // keeps the underlying callback-API connection here — the one with row events.
+        connection.connection as unknown as CoreConnection,
+        sql,
+        [...(options.params ?? [])],
+        options.maxRows + 1,
+      )
+      if (this.record.readOnly && complete) await connection.query('ROLLBACK')
+      reusable = complete
+      const truncated = rows.length > options.maxRows
+      const limited = rows.slice(0, options.maxRows).map(toJsonRow)
+      const columns = fields.map(field => ({ name: field.name }))
+      return { columns, rows: limited, rowCount: limited.length, truncated }
+    } finally {
+      if (reusable) connection.release()
+      else connection.destroy()
+    }
   }
 
   async close(): Promise<void> {

@@ -13,7 +13,7 @@ import type {
   SchemaResult,
   TableInfo,
 } from '../types.ts'
-import { toJsonRow } from './adapter.ts'
+import { QUERY_TIMEOUT_MS, toJsonRow } from './adapter.ts'
 
 const DEFAULT_MAX_TABLES = 200
 const DEFAULT_MAX_COLUMNS = 1000
@@ -61,6 +61,13 @@ export class ClickhouseAdapter implements DataSourceAdapter {
         password,
         database: this.record.database,
         max_open_connections: 3,
+        request_timeout: QUERY_TIMEOUT_MS,
+        // Server-enforced read-only for every request on this client: ClickHouse
+        // rejects writes, DDL, and settings changes regardless of what the AST
+        // gate let through. (External table functions are rejected by the AST
+        // gate itself — see `sql/classify.ts`.) No other settings are sent, so a
+        // user whose profile is already `readonly=1` is unaffected.
+        ...(this.record.readOnly ? { clickhouse_settings: { readonly: '1' } } : {}),
       })
       await (await client.query({ query: 'SELECT 1', format: 'JSONEachRow' })).json()
       this.clientInstance = client
@@ -132,20 +139,38 @@ export class ClickhouseAdapter implements DataSourceAdapter {
     return { sourceName: this.record.name, engine: 'clickhouse', scope: 'database', tables, truncated }
   }
 
-  // The client always appends `FORMAT JSON` to `sql` itself (needed for row/column
-  // metadata) — a `FORMAT` clause already in `sql` would collide and ClickHouse
-  // would reject the statement, but `sql/classify.ts` already rejects `FORMAT`
-  // as unparseable syntax before a query reaches here.
+  // The client always appends its own `FORMAT` clause to `sql` — one already in
+  // `sql` would collide and ClickHouse would reject the statement, but
+  // `sql/classify.ts` already rejects `FORMAT` as unparseable syntax before a
+  // query reaches here. `JSONCompactEachRowWithNamesAndTypes` is a streaming
+  // format whose first two rows carry the column names and types, so reading
+  // can stop one row past `maxRows` — leaving the loop destroys the response
+  // stream, aborting the HTTP request instead of downloading the rest.
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {
     const query_params = options.params === undefined
       ? undefined
       : Object.fromEntries(options.params.map((value, index) => [`p${index + 1}`, value]))
-    const response = await (await this.client().query({ query: sql, format: 'JSON', query_params })).json<Record<string, unknown>>()
-    const rowArray = response.data
-    const truncated = rowArray.length > options.maxRows
-    const limited = rowArray.slice(0, options.maxRows).map(toJsonRow)
-    const columns = (response.meta ?? []).map(field => ({ name: field.name, dataType: field.type }))
-    return { columns, rows: limited, rowCount: rowArray.length, truncated }
+    const resultSet = await this.client().query({ query: sql, format: 'JSONCompactEachRowWithNamesAndTypes', query_params })
+
+    let names: string[] | undefined
+    let types: string[] | undefined
+    const rows: Record<string, unknown>[] = []
+    read: for await (const batch of resultSet.stream<unknown[]>()) {
+      for (const row of batch) {
+        const values = row.json()
+        if (names === undefined) names = values as string[]
+        else if (types === undefined) types = values as string[]
+        else {
+          rows.push(Object.fromEntries(names.map((name, index) => [name, values[index]])))
+          if (rows.length > options.maxRows) break read
+        }
+      }
+    }
+
+    const truncated = rows.length > options.maxRows
+    const limited = rows.slice(0, options.maxRows).map(toJsonRow)
+    const columns = (names ?? []).map((name, index) => ({ name, dataType: types?.[index] ?? '' }))
+    return { columns, rows: limited, rowCount: limited.length, truncated }
   }
 
   async close(): Promise<void> {

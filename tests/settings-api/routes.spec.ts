@@ -159,6 +159,31 @@ describe('settings-api routes', () => {
     await dispose()
   })
 
+  it('set-read-only rejects a missing or non-boolean readOnly instead of coercing it to read-write', async () => {
+    const { routes, dispose } = await createTestContext()
+    await routes.get('/dsh-data-agent/api/add-source')?.(
+      fakeReq({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true }),
+      fakeRes().res,
+    )
+
+    for (const body of [{ name: 'sample' }, { name: 'sample', readOnly: 'false' }]) {
+      const { res, result } = fakeRes()
+      await routes.get('/dsh-data-agent/api/set-read-only')?.(fakeReq(body), res)
+      expect(result.status).toBe(400)
+    }
+
+    const list = fakeRes()
+    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}), list.res)
+    expect((list.result.body as { sources: { readOnly: boolean }[] }).sources[0]!.readOnly).toBe(true)
+
+    const set = fakeRes()
+    await routes.get('/dsh-data-agent/api/set-read-only')?.(fakeReq({ name: 'sample', readOnly: false }), set.res)
+    expect(set.result.status).toBe(200)
+    expect((set.result.body as { readOnly: boolean }).readOnly).toBe(false)
+
+    await dispose()
+  })
+
   it('maps an unknown source name to a 404-shaped error, not a crash', async () => {
     const { routes, dispose } = await createTestContext()
     const { res, result } = fakeRes()

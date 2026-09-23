@@ -47,3 +47,52 @@ describe('PostgresAdapter.getSchema', () => {
     expect(JSON.parse(JSON.stringify(schema))).toEqual(schema)
   })
 })
+
+/** A checked-out `pg` client whose cursor serves `rows`, recording every plain query and the cursor read size. */
+function fakeClient(rows: Record<string, unknown>[], log: string[]) {
+  return {
+    query(input: unknown) {
+      if (typeof input === 'string') {
+        log.push(input)
+        return Promise.resolve({ rows: [] })
+      }
+      return {
+        read(limit: number, callback: (error: undefined, rows: unknown[], result: { fields: { name: string }[] }) => void) {
+          log.push(`read ${limit}`)
+          callback(undefined, rows.slice(0, limit), { fields: [{ name: 'id' }] })
+        },
+        close: () => Promise.resolve(),
+      }
+    },
+    release(destroy?: boolean) {
+      log.push(destroy === true ? 'destroy' : 'release')
+    },
+  }
+}
+
+function adapterWithFakeClient(readOnly: boolean, rows: Record<string, unknown>[], log: string[]): PostgresAdapter {
+  const adapter = new PostgresAdapter(new Context(), { ...record, readOnly })
+  ;(adapter as unknown as { poolInstance: unknown }).poolInstance = {
+    connect: () => Promise.resolve(fakeClient(rows, log)),
+  }
+  return adapter
+}
+
+describe('PostgresAdapter.runQuery', () => {
+  const rows = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+  it('wraps a read-only source\'s query in BEGIN READ ONLY ... ROLLBACK and reads only maxRows + 1 rows', async () => {
+    const log: string[] = []
+    const result = await adapterWithFakeClient(true, rows, log).runQuery('SELECT id FROM t', { maxRows: 2 })
+    expect(log).toEqual(['BEGIN READ ONLY', 'read 3', 'ROLLBACK', 'release'])
+    expect(result).toEqual({ columns: [{ name: 'id' }], rows: [{ id: 1 }, { id: 2 }], rowCount: 2, truncated: true })
+  })
+
+  it('runs a read-write source\'s query with no transaction wrapper', async () => {
+    const log: string[] = []
+    const result = await adapterWithFakeClient(false, rows, log).runQuery('SELECT id FROM t', { maxRows: 5 })
+    expect(log).toEqual(['read 6', 'release'])
+    expect(result.truncated).toBe(false)
+    expect(result.rowCount).toBe(3)
+  })
+})

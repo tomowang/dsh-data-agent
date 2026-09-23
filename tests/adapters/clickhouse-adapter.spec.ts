@@ -70,3 +70,28 @@ describe('ClickhouseAdapter.getSchema nullable detection', () => {
     expect(columns.find(c => c.name === 'label')!.nullable).toBe(true)
   })
 })
+
+describe('ClickhouseAdapter.runQuery', () => {
+  it('maps the names/types header rows to columns and stops reading one row past maxRows', async () => {
+    let consumed = 0
+    const lines = [['id', 'label'], ['UInt64', 'String'], ['1', 'a'], ['2', 'b'], ['3', 'c'], ['4', 'd']]
+    async function* batches() {
+      for (const line of lines) {
+        consumed++
+        yield [{ json: () => line }]
+      }
+    }
+    const adapter = new ClickhouseAdapter(new Context(), record)
+    ;(adapter as unknown as { clientInstance: unknown }).clientInstance = {
+      query: () => Promise.resolve({ stream: () => batches() }),
+    }
+    const result = await adapter.runQuery('SELECT id, label FROM t', { maxRows: 2 })
+    expect(result).toEqual({
+      columns: [{ name: 'id', dataType: 'UInt64' }, { name: 'label', dataType: 'String' }],
+      rows: [{ id: '1', label: 'a' }, { id: '2', label: 'b' }],
+      rowCount: 2,
+      truncated: true,
+    })
+    expect(consumed).toBe(5)
+  })
+})

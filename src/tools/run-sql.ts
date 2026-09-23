@@ -70,6 +70,7 @@ export function applyRunSqlTool(ctx: Context, defaultMaxRows: number): void {
         const table = renderMarkdownTable(columns, result.rows, {
           limit: RENDER_PREVIEW_ROWS,
           totalRowCount: result.rowCount,
+          truncated: result.truncated,
         })
         const lines = [table]
         if (result.resultId !== undefined) {

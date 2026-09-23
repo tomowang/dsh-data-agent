@@ -81,6 +81,7 @@ export function applyRenderChartTool(ctx: Context): void {
         const table = renderMarkdownTable(columns, result.rows, {
           limit: RENDER_PREVIEW_ROWS,
           totalRowCount: result.rowCount,
+          truncated: result.truncated,
         })
         const yLabel = Array.isArray(result.y) ? result.y.join(', ') : result.y
         const note = result.imageUrl === undefined
