@@ -1,5 +1,6 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { createAdapter } from './adapters/adapter.ts'
+import { assertAllowedPasswordEnv } from './credential.ts'
 import { clearSourceComments } from './persistence/comments-store.ts'
 import { mutateSources, readSources } from './persistence/sources-store.ts'
 import {
@@ -135,6 +136,7 @@ export class DataSourceRegistry extends Service {
 
   async addSource(input: AddSourceInput): Promise<DataSourceRecord> {
     await this.guardReady()
+    if (input.passwordEnv !== undefined) assertAllowedPasswordEnv(input.passwordEnv)
     const record: DataSourceRecord = { ...omitUndefined(input), createdAt: new Date().toISOString() }
 
     const next = await mutateSources((current) => {
@@ -208,6 +210,7 @@ export class DataSourceRegistry extends Service {
    */
   async editSource(name: string, input: EditSourceInput): Promise<DataSourceRecord> {
     await this.guardReady()
+    if (typeof input.passwordEnv === 'string') assertAllowedPasswordEnv(input.passwordEnv)
     const next = await mutateSources((current) => {
       const index = current.findIndex(existing => existing.name === name)
       if (index === -1) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)

@@ -152,6 +152,20 @@ describe('DataSourceRegistry', () => {
     await dispose()
   })
 
+  it('rejects a passwordEnv without the DSH_DA_ prefix on add and edit, leaving sources.json untouched', async () => {
+    const { registry, dispose } = await createRegistry()
+    await expect(
+      registry.addSource({ name: 'x', engine: 'mysql', database: 'app', passwordEnv: 'DEEPSEEK_API_KEY', readOnly: true }),
+    ).rejects.toThrow(/DSH_DA_/)
+    expect(await registry.list()).toEqual([])
+
+    await registry.addSource({ name: 'x', engine: 'mysql', database: 'app', passwordEnv: 'DSH_DA_APP', readOnly: true })
+    await expect(registry.editSource('x', { passwordEnv: 'AWS_SECRET_ACCESS_KEY' })).rejects.toThrow(/DSH_DA_/)
+    expect((await registry.get('x'))?.passwordEnv).toBe('DSH_DA_APP')
+
+    await dispose()
+  })
+
   it('rejects operations after disposal', async () => {
     const { registry, dispose } = await createRegistry()
     await registry.addSource({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })

@@ -16,6 +16,8 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) pl
 
 Secrets are never stored directly: connections reference a `passwordEnv` (an environment variable **name**), resolved at connect time via the harness's `ctx.credentials` seam when mounted, else `process.env`.
 
+The variable name must start with `DSH_DA_` (e.g. `DSH_DA_PROD_DB_PASSWORD`), so a source can never read an unrelated secret such as an API key from the host environment. Credentials are attached only from Settings → Data Sources, never from chat: the chat tools can't set `passwordEnv`, and on a source that has one they can't change `host`, `port`, `user`, `ssl`, `sslmode`, or `sslrootcert`. That way a prompt-injected model can't redirect a saved password to another host.
+
 ## Demo
 
 https://github.com/user-attachments/assets/fa149214-cdd0-4820-9711-8e7451bb462f

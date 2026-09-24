@@ -1,6 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Engine } from '../data-source/types.ts'
-import { toSafeRecord } from './shared.ts'
+import { rejectChatCredentials, toSafeRecord } from './shared.ts'
 import {
   asRecord,
   optionalBoolean,
@@ -19,9 +19,9 @@ export function applyAddDataSourceTool(ctx: Context): void {
   ctx.tools.register({
     name: NAME,
     description:
-      'Register a new database connection. For MySQL/PostgreSQL/ClickHouse, provide host/port/database/user and, '
-      + 'if the database requires a password, `passwordEnv` — the NAME of an environment variable holding it (never '
-      + 'the password itself). For PostgreSQL, `sslmode` controls encryption/verification (mirrors libpq): `disable` '
+      'Register a new database connection. For MySQL/PostgreSQL/ClickHouse, provide host/port/database/user. '
+      + 'Credentials cannot be attached from chat: if the database requires a password, register the source here, '
+      + 'then ask the user to set its password environment variable in Settings → Data Sources. For PostgreSQL, `sslmode` controls encryption/verification (mirrors libpq): `disable` '
       + '(default), `allow`/`prefer` (negotiated — try one encryption state, retry with the other if that whole '
       + 'connection attempt fails), `require` (encrypted, no verification), `verify-ca` (encrypted, verifies the '
       + "certificate chain), or `verify-full` (encrypted, verifies the chain and hostname). `verify-ca`/`verify-full` "
@@ -40,7 +40,6 @@ export function applyAddDataSourceTool(ctx: Context): void {
         port: { type: 'number', description: 'MySQL/PostgreSQL/ClickHouse only.' },
         database: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse: database name. SQLite: file path.' },
         user: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse only.' },
-        passwordEnv: { type: 'string', description: 'Name of an environment variable holding the password.' },
         ssl: { type: 'boolean', description: 'MySQL/ClickHouse only. PostgreSQL uses `sslmode` instead.' },
         sslmode: {
           type: 'string',
@@ -85,6 +84,7 @@ export function applyAddDataSourceTool(ctx: Context): void {
     },
     async execute(rawArgs) {
       const args = asRecord(rawArgs, NAME)
+      rejectChatCredentials(args, NAME)
       const name = requireString(args, 'name', NAME)
       const engine = requireEnum(args, 'engine', ENGINES, NAME)
       const database = requireString(args, 'database', NAME)
@@ -96,7 +96,6 @@ export function applyAddDataSourceTool(ctx: Context): void {
         host: optionalString(args, 'host', NAME),
         port: optionalNumber(args, 'port', NAME),
         user: optionalString(args, 'user', NAME),
-        passwordEnv: optionalString(args, 'passwordEnv', NAME),
         ssl: optionalBoolean(args, 'ssl', NAME),
         sslmode: optionalEnum(args, 'sslmode', SSL_MODES, NAME),
         sslrootcert: optionalString(args, 'sslrootcert', NAME),

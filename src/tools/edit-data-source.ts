@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { toSafeRecord } from './shared.ts'
+import { assertNotRetargetingCredentials, rejectChatCredentials, toSafeRecord } from './shared.ts'
 import {
   asRecord,
   optionalBoolean,
@@ -22,7 +22,9 @@ export function applyEditDataSourceTool(ctx: Context): void {
       + 're-adding it (which would also drop its saved schema comments). `name` and `engine` cannot be changed here — '
       + 'use da_remove_data_source then da_add_data_source to switch engine. Every other field is optional: omit a field to '
       + 'leave it as-is, pass `null` to clear it, or pass a value to replace it. Any already-open connection to this '
-      + 'source is closed so the next query reopens under the new settings — da_test_connection afterward to confirm.',
+      + 'source is closed so the next query reopens under the new settings — da_test_connection afterward to confirm. '
+      + 'Credentials are managed only in Settings → Data Sources: this tool cannot set `passwordEnv`, and on a source that '
+      + 'already has one it cannot change host, port, user, ssl, sslmode, or sslrootcert.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -33,7 +35,6 @@ export function applyEditDataSourceTool(ctx: Context): void {
         port: { type: 'number', description: 'MySQL/PostgreSQL/ClickHouse only. Pass null to clear.' },
         database: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse: database name. SQLite: file path.' },
         user: { type: 'string', description: 'MySQL/PostgreSQL/ClickHouse only. Pass null to clear.' },
-        passwordEnv: { type: 'string', description: 'Name of an environment variable holding the password. Pass null to clear.' },
         ssl: { type: 'boolean', description: 'MySQL/ClickHouse only. Pass null to clear.' },
         sslmode: {
           type: 'string',
@@ -75,20 +76,24 @@ export function applyEditDataSourceTool(ctx: Context): void {
     },
     async execute(rawArgs) {
       const args = asRecord(rawArgs, NAME)
+      rejectChatCredentials(args, NAME)
       const name = requireString(args, 'name', NAME)
 
-      const record = await ctx.dataAgent.editSource(name, {
+      const patch = {
         host: optionalNullableString(args, 'host', NAME),
         port: optionalNullableNumber(args, 'port', NAME),
         database: optionalString(args, 'database', NAME),
         user: optionalNullableString(args, 'user', NAME),
-        passwordEnv: optionalNullableString(args, 'passwordEnv', NAME),
         ssl: optionalNullableBoolean(args, 'ssl', NAME),
         sslmode: optionalNullableEnum(args, 'sslmode', SSL_MODES, NAME),
         sslrootcert: optionalNullableString(args, 'sslrootcert', NAME),
         readOnly: optionalBoolean(args, 'readOnly', NAME),
         description: optionalNullableString(args, 'description', NAME),
-      })
+      }
+      const existing = await ctx.dataAgent.get(name)
+      if (existing !== undefined) assertNotRetargetingCredentials(existing, patch, NAME)
+
+      const record = await ctx.dataAgent.editSource(name, patch)
 
       return toSafeRecord(record)
     },
