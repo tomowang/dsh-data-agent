@@ -1,6 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Engine } from '../data-source/types.ts'
-import { rejectChatCredentials, toSafeRecord } from './shared.ts'
+import { assertChatReadOnlyChange, rejectChatCredentials, toSafeRecord } from './shared.ts'
 import { assertChatSqlitePath } from './sqlite-path.ts'
 import {
   asRecord,
@@ -53,7 +53,7 @@ export function applyAddDataSourceTool(ctx: Context, sqliteChatDirs: readonly st
           type: 'string',
           description: 'PostgreSQL only. Path to a PEM-encoded CA certificate file, used when `sslmode` is `verify-ca` or `verify-full`.',
         },
-        readOnly: { type: 'boolean', description: 'Defaults to true. Toggle later with da_set_read_only.' },
+        readOnly: { type: 'boolean', description: 'Must be true (the default) from chat; only the user can make a source read-write, in Settings.' },
         description: { type: 'string' },
       },
     },
@@ -92,6 +92,8 @@ export function applyAddDataSourceTool(ctx: Context, sqliteChatDirs: readonly st
       const engine = requireEnum(args, 'engine', ENGINES, NAME)
       const database = requireString(args, 'database', NAME)
       if (engine === 'sqlite') await assertChatSqlitePath(database, sqliteChatDirs, NAME)
+      const readOnly = optionalBoolean(args, 'readOnly', NAME) ?? true
+      assertChatReadOnlyChange(readOnly, undefined, NAME)
 
       const record = await ctx.dataAgent.addSource({
         name,
@@ -103,7 +105,7 @@ export function applyAddDataSourceTool(ctx: Context, sqliteChatDirs: readonly st
         ssl: optionalBoolean(args, 'ssl', NAME),
         sslmode: optionalEnum(args, 'sslmode', SSL_MODES, NAME),
         sslrootcert: optionalString(args, 'sslrootcert', NAME),
-        readOnly: optionalBoolean(args, 'readOnly', NAME) ?? true,
+        readOnly,
         description: optionalString(args, 'description', NAME),
       })
 

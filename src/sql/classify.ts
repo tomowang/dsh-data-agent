@@ -78,7 +78,7 @@ export function assertSqlAllowed(sql: string, engine: Engine, readOnly: boolean)
   if (statement === undefined || !READ_ONLY_TYPES.has(statement.type)) {
     throw new SqlRejectedError(
       `This data source is read-only: "${statement?.type ?? 'unknown'}" statements are not allowed. `
-      + 'Toggle read-only off for this source (da_set_read_only) to run write statements.',
+      + 'Only the user can make this source read-write, in Settings → Data Sources.',
     )
   }
 

@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { assertNotRetargetingCredentials, rejectChatCredentials, toSafeRecord } from './shared.ts'
+import { assertChatReadOnlyChange, assertNotRetargetingCredentials, rejectChatCredentials, toSafeRecord } from './shared.ts'
 import { assertChatSqlitePath } from './sqlite-path.ts'
 import {
   asRecord,
@@ -26,7 +26,7 @@ export function applyEditDataSourceTool(ctx: Context, sqliteChatDirs: readonly s
       + 'source is closed so the next query reopens under the new settings — da_test_connection afterward to confirm. '
       + 'Credentials are managed only in Settings → Data Sources: this tool cannot set `passwordEnv`, and on a source that '
       + 'already has one it cannot change host, port, user, ssl, sslmode, or sslrootcert. A new SQLite file path must be inside '
-      + 'a directory the user approved in `sqliteChatDirs`.',
+      + 'a directory the user approved in `sqliteChatDirs`. `readOnly` can be set to true but not turned off from chat.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -94,6 +94,7 @@ export function applyEditDataSourceTool(ctx: Context, sqliteChatDirs: readonly s
       }
       const existing = await ctx.dataAgent.get(name)
       if (existing !== undefined) assertNotRetargetingCredentials(existing, patch, NAME)
+      assertChatReadOnlyChange(patch.readOnly, existing?.readOnly, NAME)
       if (existing?.engine === 'sqlite' && patch.database !== undefined && patch.database !== existing.database) {
         await assertChatSqlitePath(patch.database, sqliteChatDirs, NAME)
       }

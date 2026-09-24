@@ -29,6 +29,22 @@ export function rejectChatCredentials(args: Record<string, unknown>, toolName: s
   }
 }
 
+/**
+ * Chat tools can make a source read-only but never read-write: a
+ * prompt-injected model could otherwise lift the flag and then write. Only the
+ * Settings page turns read-only off. Keeping a source that is already
+ * read-write as it is (e.g. a model echoing `readOnly: false` back in an edit)
+ * is allowed.
+ */
+export function assertChatReadOnlyChange(requested: boolean | undefined, current: boolean | undefined, toolName: string): void {
+  if (requested === false && current !== false) {
+    throw new ToolInputError(
+      `${toolName}: read-only can't be turned off from chat. Ask the user to make this source read-write in `
+      + 'Settings → Data Sources.',
+    )
+  }
+}
+
 /** Connection fields that decide where (and how securely) a source's password is sent. */
 const CREDENTIAL_TARGET_FIELDS = ['host', 'port', 'user', 'ssl', 'sslmode', 'sslrootcert'] as const
 

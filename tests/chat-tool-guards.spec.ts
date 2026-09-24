@@ -7,6 +7,7 @@ import { assertAllowedPasswordEnv, resolveSecret } from '../src/data-source/cred
 import type { DataSourceRecord } from '../src/data-source/types.ts'
 import { applyAddDataSourceTool } from '../src/tools/add-data-source.ts'
 import { applyEditDataSourceTool } from '../src/tools/edit-data-source.ts'
+import { applySetReadOnlyTool } from '../src/tools/set-read-only.ts'
 import type { ToolDefinition } from '../src/tools/tool-types.ts'
 
 describe('passwordEnv prefix', () => {
@@ -66,6 +67,7 @@ function registerTool(
       get: async () => existing,
       addSource: async (...args: unknown[]) => { calls.push({ method: 'addSource', args }); return credentialed },
       editSource: async (...args: unknown[]) => { calls.push({ method: 'editSource', args }); return credentialed },
+      setReadOnly: async (...args: unknown[]) => { calls.push({ method: 'setReadOnly', args }); return credentialed },
     },
   } as unknown as Context
   apply(ctx, sqliteChatDirs)
@@ -99,7 +101,7 @@ describe('da_edit_data_source credentials', () => {
 
   it('allows unrelated edits, and re-sending current values, on a credentialed source', async () => {
     const { run, calls } = registerTool(applyEditDataSourceTool, credentialed)
-    await run({ name: 'prod', host: 'db.internal', port: 5432, description: 'Production', readOnly: false })
+    await run({ name: 'prod', host: 'db.internal', port: 5432, description: 'Production', readOnly: true })
     expect(calls).toHaveLength(1)
   })
 
@@ -133,7 +135,7 @@ describe('SQLite paths from chat', () => {
   it('accepts an existing or not-yet-created file inside an approved directory', async () => {
     const { run, calls } = registerTool(applyAddDataSourceTool, undefined, [approved])
     await run({ name: 'x', engine: 'sqlite', database: join(approved, 'app.db') })
-    await run({ name: 'y', engine: 'sqlite', database: join(approved, 'new.db'), readOnly: false })
+    await run({ name: 'y', engine: 'sqlite', database: join(approved, 'new.db') })
     expect(calls).toHaveLength(2)
   })
 
@@ -165,6 +167,41 @@ describe('SQLite paths from chat', () => {
     const outsideSource = { ...sqliteSource, database: join(outside, 'Cookies') }
     const unchanged = registerTool(applyEditDataSourceTool, outsideSource, [approved])
     await unchanged.run({ name: 'local', database: outsideSource.database, description: 'set from Settings' })
+    expect(unchanged.calls).toHaveLength(1)
+  })
+})
+
+describe('turning read-only off from chat', () => {
+  const readOnlySource = { ...credentialed, passwordEnv: undefined, readOnly: true }
+  const readWriteSource = { ...readOnlySource, readOnly: false }
+
+  it('da_set_read_only can turn read-only on but not off', async () => {
+    const off = registerTool(ctx => applySetReadOnlyTool(ctx), readOnlySource)
+    await expect(off.run({ name: 'prod', readOnly: false })).rejects.toThrow(/Settings/)
+    expect(off.calls).toEqual([])
+
+    const on = registerTool(ctx => applySetReadOnlyTool(ctx), readWriteSource)
+    await on.run({ name: 'prod', readOnly: true })
+    expect(on.calls).toEqual([{ method: 'setReadOnly', args: ['prod', true] }])
+  })
+
+  it('da_add_data_source defaults to read-only and rejects readOnly: false', async () => {
+    const rejected = registerTool(applyAddDataSourceTool, undefined)
+    await expect(rejected.run({ name: 'x', engine: 'postgres', database: 'app', readOnly: false })).rejects.toThrow(/Settings/)
+    expect(rejected.calls).toEqual([])
+
+    const accepted = registerTool(applyAddDataSourceTool, undefined)
+    await accepted.run({ name: 'x', engine: 'postgres', database: 'app' })
+    expect((accepted.calls[0]!.args[0] as { readOnly: boolean }).readOnly).toBe(true)
+  })
+
+  it('da_edit_data_source rejects readOnly: false on a read-only source, but allows re-sending it on a read-write one', async () => {
+    const rejected = registerTool(applyEditDataSourceTool, readOnlySource)
+    await expect(rejected.run({ name: 'prod', readOnly: false })).rejects.toThrow(/Settings/)
+    expect(rejected.calls).toEqual([])
+
+    const unchanged = registerTool(applyEditDataSourceTool, readWriteSource)
+    await unchanged.run({ name: 'prod', readOnly: false, description: 'x' })
     expect(unchanged.calls).toHaveLength(1)
   })
 })

@@ -1,4 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
+import { assertChatReadOnlyChange } from './shared.ts'
 import { asRecord, requireString } from './tool-types.ts'
 
 const NAME = 'da_set_read_only'
@@ -7,8 +8,9 @@ export function applySetReadOnlyTool(ctx: Context): void {
   ctx.tools.register({
     name: NAME,
     description:
-      'Toggle a data source\'s read-only flag without removing and re-adding it. Any already-open connection to '
-      + 'this source is closed so the next query reopens under the new mode.',
+      'Make a data source read-only without removing and re-adding it. Any already-open connection to this source '
+      + 'is closed so the next query reopens under the new mode. Read-only can only be turned off by the user, in '
+      + 'Settings → Data Sources — `readOnly: false` is rejected here unless the source is already read-write.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -31,6 +33,7 @@ export function applySetReadOnlyTool(ctx: Context): void {
       const name = requireString(args, 'name', NAME)
       const readOnly = args.readOnly
       if (typeof readOnly !== 'boolean') throw new Error(`${NAME}: "readOnly" is required and must be a boolean`)
+      assertChatReadOnlyChange(readOnly, (await ctx.dataAgent.get(name))?.readOnly, NAME)
       const record = await ctx.dataAgent.setReadOnly(name, readOnly)
       return { name: record.name, readOnly: record.readOnly }
     },
