@@ -16,7 +16,7 @@ import type {
   SchemaResult,
   TableInfo,
 } from '../types.ts'
-import { QUERY_TIMEOUT_MS, toJsonRow } from './adapter.ts'
+import { getQueryTimeoutMs, toJsonRow } from './adapter.ts'
 
 const DEFAULT_MAX_TABLES = 200
 const DEFAULT_MAX_COLUMNS = 1000
@@ -71,7 +71,7 @@ export class PostgresAdapter implements DataSourceAdapter {
         database: this.record.database,
         ssl,
         max: 3,
-        statement_timeout: QUERY_TIMEOUT_MS,
+        statement_timeout: getQueryTimeoutMs(),
       })
       try {
         await pool.query('SELECT 1')

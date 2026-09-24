@@ -13,7 +13,7 @@ import type {
   SchemaResult,
   TableInfo,
 } from '../types.ts'
-import { QUERY_TIMEOUT_MS, toJsonRow } from './adapter.ts'
+import { getQueryTimeoutMs, toJsonRow } from './adapter.ts'
 
 const DEFAULT_MAX_TABLES = 200
 const DEFAULT_MAX_COLUMNS = 1000
@@ -31,6 +31,23 @@ interface TableRow {
   name: string
   comment: string
 }
+
+/**
+ * `JSON.parse` reviver keeping an integer beyond ±2^53 as its exact source
+ * text. Recent ClickHouse versions no longer quote 64-bit integers in JSON
+ * output (`output_format_json_quote_64bit_integers` now defaults to 0), and a
+ * plain parse would silently round them. Setting that option back per query
+ * isn't possible: a `readonly=1` source may not change settings.
+ */
+function keepUnsafeIntegers(_key: string, value: unknown, context?: { source?: string }): unknown {
+  if (typeof value === 'number' && Number.isInteger(value) && !Number.isSafeInteger(value) && context?.source !== undefined) {
+    return context.source
+  }
+  return value
+}
+
+/** `UInt64`, `Nullable(Int128)`, `LowCardinality(Nullable(UInt256))`, ... — the integer types JavaScript numbers can't hold exactly. */
+const WIDE_INTEGER_TYPE = /^(?:(?:Nullable|LowCardinality)\()*U?Int(?:64|128|256)\)*$/
 
 /**
  * ClickHouse via the official `@clickhouse/client` HTTP client. Schema
@@ -61,7 +78,8 @@ export class ClickhouseAdapter implements DataSourceAdapter {
         password,
         database: this.record.database,
         max_open_connections: 3,
-        request_timeout: QUERY_TIMEOUT_MS,
+        request_timeout: getQueryTimeoutMs(),
+        json: { parse: (text: string) => JSON.parse(text, keepUnsafeIntegers as Parameters<typeof JSON.parse>[1]) },
         // Server-enforced read-only for every request on this client: ClickHouse
         // rejects writes, DDL, and settings changes regardless of what the AST
         // gate let through. (External table functions are rejected by the AST
@@ -164,6 +182,16 @@ export class ClickhouseAdapter implements DataSourceAdapter {
           rows.push(Object.fromEntries(names.map((name, index) => [name, values[index]])))
           if (rows.length > options.maxRows) break read
         }
+      }
+    }
+
+    // A 64-bit-or-wider integer column is always a string, whatever its size —
+    // the same shape the PostgreSQL and MySQL adapters return for bigint, and
+    // what older ClickHouse versions sent by default.
+    const wideColumns = (names ?? []).filter((_name, index) => WIDE_INTEGER_TYPE.test(types?.[index] ?? ''))
+    for (const row of rows) {
+      for (const name of wideColumns) {
+        if (typeof row[name] === 'number') row[name] = String(row[name])
       }
     }
 

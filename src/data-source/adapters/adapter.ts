@@ -15,6 +15,18 @@ import { ClickhouseAdapter } from './clickhouse-adapter.ts'
  */
 export const QUERY_TIMEOUT_MS = 30_000
 
+let queryTimeoutMs = QUERY_TIMEOUT_MS
+
+/** The per-query time limit in effect — `QUERY_TIMEOUT_MS` outside tests. Read when a connection opens (PostgreSQL/ClickHouse) or a query starts (MySQL). */
+export function getQueryTimeoutMs(): number {
+  return queryTimeoutMs
+}
+
+/** Test-only seam: lets the integration suite exercise timeouts in about a second rather than 30. Not wired to any config. */
+export function setQueryTimeoutMsForTesting(ms: number): void {
+  queryTimeoutMs = ms
+}
+
 /** Coerce one driver-returned cell into a JSON-safe scalar. */
 export function toJsonScalar(value: unknown): JsonScalar {
   if (value === null || value === undefined) return null
@@ -23,6 +35,11 @@ export function toJsonScalar(value: unknown): JsonScalar {
   if (value instanceof Date) return value.toISOString()
   if (Buffer.isBuffer(value)) return value.toString('base64')
   if (value instanceof Uint8Array) return Buffer.from(value).toString('base64')
+  // A JSON/JSONB column arrives already parsed (pg, mysql2); String() would
+  // flatten it to "[object Object]". Re-serialize it instead.
+  if (typeof value === 'object') {
+    return JSON.stringify(value, (_key, inner: unknown) => typeof inner === 'bigint' ? inner.toString() : inner)
+  }
   return String(value)
 }
 

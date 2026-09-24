@@ -14,7 +14,7 @@ import type {
   SchemaResult,
   TableInfo,
 } from '../types.ts'
-import { QUERY_TIMEOUT_MS, toJsonRow } from './adapter.ts'
+import { getQueryTimeoutMs, toJsonRow } from './adapter.ts'
 
 const DEFAULT_MAX_TABLES = 200
 const DEFAULT_MAX_COLUMNS = 1000
@@ -41,20 +41,22 @@ interface StreamedRows {
 
 /**
  * Run `sql` on a core (callback-API) connection, collecting at most `limit`
- * rows. A statement with no result set (INSERT/UPDATE/...) emits its OK
- * packet as a `result` before any `fields` — that's not a row, so it's skipped.
+ * rows. A statement with no result set (INSERT/UPDATE/...) still emits a
+ * `result` — its OK packet (`affectedRows`, ...) — with no fields, or an empty
+ * list; that's not a row, so it's skipped. A real result set always has at
+ * least one column.
  */
 function streamRows(connection: CoreConnection, sql: string, values: unknown[], limit: number): Promise<StreamedRows> {
   return new Promise((resolve, reject) => {
     const rows: Record<string, unknown>[] = []
     let fields: FieldPacket[] | undefined
     let settled = false
-    const query = connection.query({ sql, values, timeout: QUERY_TIMEOUT_MS })
+    const query = connection.query({ sql, values, timeout: getQueryTimeoutMs() })
     query.on('fields', (received: FieldPacket[] | undefined) => {
       fields = received ?? []
     })
     query.on('result', (row: unknown) => {
-      if (settled || fields === undefined) return
+      if (settled || fields === undefined || fields.length === 0) return
       rows.push(row as Record<string, unknown>)
       if (rows.length >= limit) {
         settled = true
