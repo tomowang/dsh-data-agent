@@ -41,6 +41,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
     "test": "vitest run",
+    "test:integration": "DSH_DA_IT_ENGINES=${DSH_DA_IT_ENGINES:-postgres,mysql,clickhouse} vitest run tests/integration",
     "build": "pnpm run build:host && pnpm run build:client",
     "build:host": "tsc -p tsconfig.build.json",
     "build:client": "node scripts/build-client.mjs",

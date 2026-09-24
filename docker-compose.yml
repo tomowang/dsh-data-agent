@@ -1,0 +1,42 @@
+# Local databases for `pnpm run test:integration` — the same images and
+# credentials CI uses (.github/workflows/ci.yml). Swap `mysql:8.4` for
+# `mariadb:11.4` to test MariaDB.
+#
+#   docker compose up -d --wait
+#   pnpm run test:integration
+#   docker compose down
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: pw
+      POSTGRES_DB: it
+    ports: ['5432:5432']
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres']
+      interval: 2s
+      retries: 30
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: pw
+      MYSQL_DATABASE: it
+    ports: ['3306:3306']
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-ppw']
+      interval: 2s
+      retries: 45
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    environment:
+      CLICKHOUSE_PASSWORD: pw
+      CLICKHOUSE_DB: it
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+    ports: ['8123:8123']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8123/ping']
+      interval: 2s
+      retries: 30

@@ -69,10 +69,25 @@ pnpm run test
 Scripts:
 
 - `pnpm run typecheck` — type-check both the Host (`tsconfig.json`) and Client (`tsconfig.client.json`) source
-- `pnpm run test` — run tests (vitest); `tests/` cover SQLite in-process (no server needed) plus the SQL classifier, persistence, and registry logic — to exercise the MySQL/PostgreSQL/ClickHouse adapters, register a source against a reachable instance (a local Docker container works fine) and run `da_test_connection`/`da_get_schema`/`da_run_sql` from there
+- `pnpm run test` — run the unit tests (vitest): SQLite in-process (no server needed), the SQL classifier, persistence, registry, and chat-tool logic. The integration suites in `tests/integration/` are skipped here
+- `pnpm run test:integration` — run the MySQL/PostgreSQL/ClickHouse adapters against real servers (see below)
 - `pnpm run build` — build both halves to `lib/` (`build:host` + `build:client`)
 - `pnpm run build:host` / `build:client` (or `watch:host` / `watch:client`, or plain `watch` for both at once) — build one half only
 - `pnpm run dev` — build both halves and link this plugin into the local `web` profile (see below)
+
+### Integration tests
+
+`tests/integration/` drives the MySQL, PostgreSQL, and ClickHouse adapters against real servers. It covers database-enforced read-only mode, the row cap, query timeouts, writes, and how cell types are converted. CI runs it on every push and pull request, with the servers as service containers (`.github/workflows/ci.yml`), once against MySQL 8.4 and once against MariaDB 11.4. The release workflow won't publish unless it passes.
+
+Locally, start the same servers with Docker (or Podman) and run the suite:
+
+```sh
+docker compose up -d --wait
+pnpm run test:integration
+docker compose down
+```
+
+To run only some engines, set `DSH_DA_IT_ENGINES` (e.g. `DSH_DA_IT_ENGINES=postgres pnpm run test:integration`). The tests expect each server on its default port on `127.0.0.1`, with password `pw` and a database named `it`. `DSH_DA_IT_HOST`, `DSH_DA_IT_PG_PORT`, `DSH_DA_IT_MYSQL_PORT`, `DSH_DA_IT_CLICKHOUSE_PORT`, and `DSH_DA_IT_PASSWORD` override those defaults.
 
 ### Architecture
 

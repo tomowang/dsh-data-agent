@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.mysql.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # PostgreSQL and ClickHouse run in both legs; only the MySQL-family server varies.
+        mysql:
+          - image: mysql:8.4
+            health: mysqladmin ping -h 127.0.0.1 -ppw
+          - image: mariadb:11.4
+            health: healthcheck.sh --connect --innodb_initialized
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: pw
+          POSTGRES_DB: it
+        ports: ['5432:5432']
+        # -h 127.0.0.1: the init-time server listens on the Unix socket only, so this stays unhealthy until the real one is up.
+        options: --health-cmd "pg_isready -h 127.0.0.1 -U postgres" --health-interval 2s --health-timeout 5s --health-retries 30
+
+      mysql:
+        image: ${{ matrix.mysql.image }}
+        env:
+          MYSQL_ROOT_PASSWORD: pw
+          MYSQL_DATABASE: it
+          MARIADB_ROOT_PASSWORD: pw
+          MARIADB_DATABASE: it
+        ports: ['3306:3306']
+        options: --health-cmd "${{ matrix.mysql.health }}" --health-interval 2s --health-timeout 5s --health-retries 45
+
+      clickhouse:
+        image: clickhouse/clickhouse-server:25.8
+        env:
+          CLICKHOUSE_PASSWORD: pw
+          CLICKHOUSE_DB: it
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+        ports: ['8123:8123']
+        options: --health-cmd "wget -qO- http://127.0.0.1:8123/ping" --health-interval 2s --health-timeout 5s --health-retries 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/setup@v2
+        with:
+          runtime: node@24
+          cache: true
+          install: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run typecheck
+
+      - run: pnpm run test
+
+      - run: pnpm run test:integration
+        env:
+          DSH_DA_IT_ENGINES: postgres,mysql,clickhouse
+          DSH_DA_IT_PASSWORD: pw
