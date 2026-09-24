@@ -21,10 +21,17 @@ export const name = 'data-agent'
 export interface Config {
   /** Default row cap for da_run_sql when the caller doesn't pass maxRows. */
   defaultMaxRows: number
+  /**
+   * Directories the chat tools may point a SQLite source at (the Settings
+   * page may use any path). Empty by default: SQLite sources are then added
+   * from Settings only.
+   */
+  sqliteChatDirs: string[]
 }
 
 export const Config: Schema<Config> = Schema.object({
   defaultMaxRows: Schema.number().default(500),
+  sqliteChatDirs: Schema.array(Schema.string()).default([]),
 })
 
 export function apply(ctx: Context, config: Config): void {
@@ -35,8 +42,8 @@ export function apply(ctx: Context, config: Config): void {
     name: 'dsh-data-agent-tools',
     inject: ['tools', 'dataAgent', 'queryResultCache'],
     apply(toolsCtx: Context) {
-      applyAddDataSourceTool(toolsCtx)
-      applyEditDataSourceTool(toolsCtx)
+      applyAddDataSourceTool(toolsCtx, config.sqliteChatDirs)
+      applyEditDataSourceTool(toolsCtx, config.sqliteChatDirs)
       applyRemoveDataSourceTool(toolsCtx)
       applyListDataSourcesTool(toolsCtx)
       applyTestConnectionTool(toolsCtx)

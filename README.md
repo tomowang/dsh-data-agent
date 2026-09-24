@@ -18,6 +18,14 @@ Secrets are never stored directly: connections reference a `passwordEnv` (an env
 
 The variable name must start with `DSH_DA_` (e.g. `DSH_DA_PROD_DB_PASSWORD`), so a source can never read an unrelated secret such as an API key from the host environment. Credentials are attached only from Settings → Data Sources, never from chat: the chat tools can't set `passwordEnv`, and on a source that has one they can't change `host`, `port`, `user`, `ssl`, `sslmode`, or `sslrootcert`. That way a prompt-injected model can't redirect a saved password to another host.
 
+SQLite file paths get the same treatment. From chat, a SQLite source's path must be inside a directory listed in the plugin's `sqliteChatDirs` config, checked after resolving symlinks and `..`; `file:` URIs are refused. The list is empty by default, so SQLite sources are added from Settings unless you opt a directory in:
+
+```yaml
+config:
+  sqliteChatDirs:
+    - /home/me/data
+```
+
 ## Demo
 
 https://github.com/user-attachments/assets/fa149214-cdd0-4820-9711-8e7451bb462f
@@ -135,6 +143,6 @@ See `deepseek-harness`'s [plugin tutorials](https://github.com/deepseek-ai/deeps
 ## Known v1 limitations
 
 - SQL placeholder syntax isn't unified across engines: `?` for MySQL/SQLite, `$1, $2, ...` for PostgreSQL, `{p1:Type}, {p2:Type}, ...` for ClickHouse (its HTTP interface only supports named parameters; `params` binds to them positionally as `p1`, `p2`, ...).
-- `da_run_sql`'s safety check rejects any statement the parser can't classify (e.g. SQLite `PRAGMA`, some PostgreSQL `EXPLAIN` forms, ClickHouse `FORMAT` clauses) rather than guessing — use `da_get_schema` for introspection instead of raw `PRAGMA`, and omit `FORMAT` (the ClickHouse adapter always requests `FORMAT JSON` itself).
+- `da_run_sql`'s safety check rejects any statement the parser can't classify (e.g. SQLite `PRAGMA`, some PostgreSQL `EXPLAIN` forms, ClickHouse `FORMAT` clauses) rather than guessing — use `da_get_schema` for introspection instead of raw `PRAGMA`, and omit `FORMAT` (the ClickHouse adapter always sets its own output format).
 - `node-sql-parser` (the AST-based safety check) has no dedicated ClickHouse dialect; ClickHouse sources are classified against its PostgreSQL grammar, which is close enough for common SELECT/DDL/DML but will reject some ClickHouse-specific syntax as unparseable rather than misclassifying it.
 - The Settings panel's raw HTTP routes carry a hand-rolled `Origin` check rather than the harness's own `/api` trust fence (which is specific to `ctx.remote` calls) — adequate for the existing loopback-only threat model, not a claim of parity.

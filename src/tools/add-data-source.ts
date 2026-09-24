@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Engine } from '../data-source/types.ts'
 import { rejectChatCredentials, toSafeRecord } from './shared.ts'
+import { assertChatSqlitePath } from './sqlite-path.ts'
 import {
   asRecord,
   optionalBoolean,
@@ -15,7 +16,7 @@ const NAME = 'da_add_data_source'
 const ENGINES: readonly Engine[] = ['mysql', 'postgres', 'sqlite', 'clickhouse']
 const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 
-export function applyAddDataSourceTool(ctx: Context): void {
+export function applyAddDataSourceTool(ctx: Context, sqliteChatDirs: readonly string[]): void {
   ctx.tools.register({
     name: NAME,
     description:
@@ -26,7 +27,9 @@ export function applyAddDataSourceTool(ctx: Context): void {
       + 'connection attempt fails), `require` (encrypted, no verification), `verify-ca` (encrypted, verifies the '
       + "certificate chain), or `verify-full` (encrypted, verifies the chain and hostname). `verify-ca`/`verify-full` "
       + 'should be paired with `sslrootcert` unless the certificate already chains to a CA Node trusts by default. '
-      + 'For SQLite, `database` is the file path and the other connection fields are ignored. For ClickHouse, `ssl` '
+      + 'For SQLite, `database` is the file path and the other connection fields are ignored; from chat, the path must be '
+      + 'inside a directory the user approved in the plugin\'s `sqliteChatDirs` config — otherwise ask the user to add it '
+      + 'in Settings → Data Sources. For ClickHouse, `ssl` '
       + 'selects `https://` for its HTTP interface (default port 8123, or 8443 with `ssl`). The connection is not '
       + 'tested here — use da_test_connection afterward.',
     parameters: {
@@ -88,6 +91,7 @@ export function applyAddDataSourceTool(ctx: Context): void {
       const name = requireString(args, 'name', NAME)
       const engine = requireEnum(args, 'engine', ENGINES, NAME)
       const database = requireString(args, 'database', NAME)
+      if (engine === 'sqlite') await assertChatSqlitePath(database, sqliteChatDirs, NAME)
 
       const record = await ctx.dataAgent.addSource({
         name,

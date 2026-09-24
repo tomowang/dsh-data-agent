@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { assertAllowedPasswordEnv, resolveSecret } from '../src/data-source/credential.ts'
@@ -50,7 +53,11 @@ const credentialed: DataSourceRecord = {
 }
 
 /** Register one tool against a fake `ctx.tools`/`ctx.dataAgent`, recording what reaches the registry. */
-function registerTool(apply: (ctx: Context) => void, existing: DataSourceRecord | undefined) {
+function registerTool(
+  apply: (ctx: Context, sqliteChatDirs: readonly string[]) => void,
+  existing: DataSourceRecord | undefined,
+  sqliteChatDirs: readonly string[] = [],
+) {
   const calls: { method: string, args: unknown[] }[] = []
   let tool: ToolDefinition | undefined
   const ctx = {
@@ -61,7 +68,7 @@ function registerTool(apply: (ctx: Context) => void, existing: DataSourceRecord 
       editSource: async (...args: unknown[]) => { calls.push({ method: 'editSource', args }); return credentialed },
     },
   } as unknown as Context
-  apply(ctx)
+  apply(ctx, sqliteChatDirs)
   return { run: (args: unknown) => tool!.execute(args, {}), calls }
 }
 
@@ -100,5 +107,64 @@ describe('da_edit_data_source credentials', () => {
     const { run, calls } = registerTool(applyEditDataSourceTool, { ...credentialed, passwordEnv: undefined })
     await run({ name: 'prod', host: 'db2.internal' })
     expect(calls).toHaveLength(1)
+  })
+})
+
+describe('SQLite paths from chat', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-da-sqlite-path-'))
+  const approved = join(root, 'approved')
+  const outside = join(root, 'outside')
+  mkdirSync(approved)
+  mkdirSync(outside)
+  writeFileSync(join(approved, 'app.db'), '')
+  writeFileSync(join(outside, 'Cookies'), '')
+  symlinkSync(join(outside, 'Cookies'), join(approved, 'link.db'))
+
+  const sqliteSource: DataSourceRecord = {
+    name: 'local', engine: 'sqlite', database: join(approved, 'app.db'), readOnly: true, createdAt: new Date(0).toISOString(),
+  }
+
+  it('rejects every SQLite path when no directories are approved', async () => {
+    const { run, calls } = registerTool(applyAddDataSourceTool, undefined)
+    await expect(run({ name: 'x', engine: 'sqlite', database: join(approved, 'app.db') })).rejects.toThrow(/sqliteChatDirs/)
+    expect(calls).toEqual([])
+  })
+
+  it('accepts an existing or not-yet-created file inside an approved directory', async () => {
+    const { run, calls } = registerTool(applyAddDataSourceTool, undefined, [approved])
+    await run({ name: 'x', engine: 'sqlite', database: join(approved, 'app.db') })
+    await run({ name: 'y', engine: 'sqlite', database: join(approved, 'new.db'), readOnly: false })
+    expect(calls).toHaveLength(2)
+  })
+
+  it('rejects paths that escape the approved directory via .., a symlink, or a file: URI', async () => {
+    for (const database of [
+      join(outside, 'Cookies'),
+      join(approved, '..', 'outside', 'Cookies'),
+      join(approved, 'link.db'),
+      `file:${join(outside, 'Cookies')}?mode=ro`,
+      approved,
+    ]) {
+      const { run, calls } = registerTool(applyAddDataSourceTool, undefined, [approved])
+      await expect(run({ name: 'x', engine: 'sqlite', database })).rejects.toThrow(/cannot be set from chat/)
+      expect(calls).toEqual([])
+    }
+  })
+
+  it('does not treat a network engine\'s database name as a path', async () => {
+    const { run, calls } = registerTool(applyAddDataSourceTool, undefined)
+    await run({ name: 'x', engine: 'postgres', host: 'db.internal', database: '/etc/passwd' })
+    expect(calls).toHaveLength(1)
+  })
+
+  it('applies the same check when editing a SQLite source\'s path, but allows re-sending the current one', async () => {
+    const rejected = registerTool(applyEditDataSourceTool, sqliteSource, [approved])
+    await expect(rejected.run({ name: 'local', database: join(outside, 'Cookies') })).rejects.toThrow(/cannot be set from chat/)
+    expect(rejected.calls).toEqual([])
+
+    const outsideSource = { ...sqliteSource, database: join(outside, 'Cookies') }
+    const unchanged = registerTool(applyEditDataSourceTool, outsideSource, [approved])
+    await unchanged.run({ name: 'local', database: outsideSource.database, description: 'set from Settings' })
+    expect(unchanged.calls).toHaveLength(1)
   })
 })
