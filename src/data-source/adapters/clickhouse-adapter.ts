@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { createClient, type ClickHouseClient } from '@clickhouse/client'
+import { ClickHouseLogLevel, createClient, type ClickHouseClient } from '@clickhouse/client'
 import { resolveSecret } from '../credential.ts'
 import { CONNECTION_FAILED_CODE, DataAgentError, TABLE_NOT_FOUND_CODE } from '../errors.ts'
 import type {
@@ -80,6 +80,11 @@ export class ClickhouseAdapter implements DataSourceAdapter {
         max_open_connections: 3,
         request_timeout: getQueryTimeoutMs(),
         json: { parse: (text: string) => JSON.parse(text, keepUnsafeIntegers as Parameters<typeof JSON.parse>[1]) },
+        // The client logs every failed request and every aborted response at
+        // ERROR. Real failures already reach the caller as thrown errors, and
+        // `runQuery` aborts a response on purpose whenever it hits the row cap,
+        // so the client's own log would only add noise to the harness's log.
+        log: { level: ClickHouseLogLevel.OFF },
         // Server-enforced read-only for every request on this client: ClickHouse
         // rejects writes, DDL, and settings changes regardless of what the AST
         // gate let through. (External table functions are rejected by the AST
