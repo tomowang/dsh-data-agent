@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { isTrustedOrigin } from '../settings-api/trust.ts'
+import { isTrustedRequest } from '../settings-api/trust.ts'
 
 /**
  * No trailing slash: `ctx.webServer`'s own `kind: 'prefix'` matching is
@@ -16,10 +16,9 @@ export const CHART_IMAGE_ROUTE_PREFIX = `${ROUTE_PATH}/`
  * size/timing/permission rules) — never as a URL resolved against the page's
  * origin. A plain `http(s)://` URL is the one image form it always renders,
  * including mid-stream, so that's what `da_render_chart` must embed instead
- * of the bare route path. `0.0.0.0` isn't itself a browsable host, and
- * `trust.ts`'s `isTrustedOrigin` only ever recognizes the configured host
- * plus the literal `'localhost'` — so `'localhost'` is the one substitution
- * that's both reachable and already trusted.
+ * of the bare route path. `0.0.0.0` isn't itself a browsable host, so it's
+ * swapped for `'localhost'`, which is always reachable and always among the
+ * hosts `trust.ts`'s `isTrustedRequest` accepts.
  *
  * Reads `webServer` via `ctx.get`, not direct `ctx.webServer` access: this is
  * called from `chart-image.ts`, itself called from `render-chart.ts`'s own
@@ -50,7 +49,7 @@ export function applyChartImageRoutes(ctx: Context): void {
     kind: 'prefix',
     path: ROUTE_PATH,
     handler(req, res) {
-      if (!isTrustedOrigin(ctx, req)) {
+      if (!isTrustedRequest(ctx, req)) {
         res.writeHead(403)
         res.end()
         return

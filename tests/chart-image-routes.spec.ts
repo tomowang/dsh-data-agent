@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { applyChartImageRoutes, CHART_IMAGE_ROUTE_PREFIX, chartImageUrl } from '../src/tools/chart-image-routes.ts'
 import { ChartImageStore } from '../src/tools/chart-image-store.ts'
 
-function fakeReq(url: string, origin?: string): IncomingMessage {
-  return { url, headers: { origin } } as unknown as IncomingMessage
+function fakeReq(url: string, origin?: string, host = '127.0.0.1:3080'): IncomingMessage {
+  return { url, method: 'GET', headers: { host, origin } } as unknown as IncomingMessage
 }
 
 interface FakeResponse {
@@ -48,7 +48,7 @@ describe('chartImageUrl', () => {
     expect(chartImageUrl(ctx, 'abc')).toBe(`http://127.0.0.1:3080${CHART_IMAGE_ROUTE_PREFIX}abc.png`)
   })
 
-  it('substitutes localhost for 0.0.0.0, since trust.ts never trusts a literal 0.0.0.0 Origin', () => {
+  it('substitutes localhost for 0.0.0.0, which is always a trusted host', () => {
     const ctx = new Context()
     ctx.provide('webServer', { host: '0.0.0.0', port: 3080, register: () => () => {} })
     expect(chartImageUrl(ctx, 'abc')).toBe(`http://localhost:3080${CHART_IMAGE_ROUTE_PREFIX}abc.png`)
@@ -83,6 +83,16 @@ describe('chart-image routes', () => {
 
     const { res, result } = fakeRes()
     await handler(fakeReq(`${CHART_IMAGE_ROUTE_PREFIX}${id}.png`, 'http://evil.example'), res)
+    expect(result.status).toBe(403)
+    await dispose()
+  })
+
+  it('rejects a DNS-rebinding request (foreign Host header) with 403', async () => {
+    const { ctx, handler, dispose } = await createTestContext()
+    const id = ctx.chartImageStore.put(Buffer.from('png-bytes'))
+
+    const { res, result } = fakeRes()
+    await handler(fakeReq(`${CHART_IMAGE_ROUTE_PREFIX}${id}.png`, undefined, 'evil.example:3080'), res)
     expect(result.status).toBe(403)
     await dispose()
   })

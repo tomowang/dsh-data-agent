@@ -2,11 +2,12 @@ import type { ConnectionTestResult, DataSourceRecord, SchemaResult } from '../..
 
 const BASE = '/dsh-data-agent/api'
 
-async function call<T>(path: string, body?: unknown): Promise<T> {
+/** Every route is a JSON POST, reads included — the Host requires it (see `settings-api/routes.ts`). */
+async function call<T>(path: string, body: unknown = {}): Promise<T> {
   const response = await fetch(`${BASE}/${path}`, {
-    method: body === undefined ? 'GET' : 'POST',
-    headers: body === undefined ? {} : { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
   })
   const payload: unknown = await response.json()
   if (!response.ok) {

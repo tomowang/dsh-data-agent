@@ -1,31 +1,73 @@
 import type { IncomingMessage } from 'node:http'
+import { hostname, networkInterfaces } from 'node:os'
 import type { Context } from '@deepseek-ai/cordis'
+
+const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]']
+
+/**
+ * Hostnames (in `URL#hostname` form, IPv6 bracketed) this server may be
+ * reached by: loopback always, plus — when bound to every interface
+ * (`0.0.0.0`) — each local interface address and the machine's hostname, so
+ * a deliberate LAN deployment keeps working.
+ */
+function allowedHostnames(bindHost: string): Set<string> {
+  const allowed = new Set(LOOPBACK_HOSTNAMES)
+  if (bindHost !== '0.0.0.0') {
+    allowed.add(bindHost.toLowerCase())
+    return allowed
+  }
+  allowed.add(hostname().toLowerCase())
+  for (const addresses of Object.values(networkInterfaces())) {
+    for (const { address, family } of addresses ?? []) {
+      allowed.add(family === 'IPv6' ? `[${address.split('%')[0]!.toLowerCase()}]` : address)
+    }
+  }
+  return allowed
+}
+
+/** Parse a `Host`/`Origin` authority, or `undefined` when malformed. */
+function parseUrl(value: string): URL | undefined {
+  try {
+    return new URL(value)
+  } catch {
+    return undefined
+  }
+}
+
+function effectivePort(url: URL): string {
+  return url.port !== '' ? url.port : url.protocol === 'https:' ? '443' : '80'
+}
 
 /**
  * A minimal same-origin guard for our raw `ctx.webServer` routes. Unlike
  * `ctx.remote` calls (routed through Connection's own `/api` prefix, which
  * carries its own Origin/DNS-rebinding trust fence), a plain
- * `ctx.webServer.register()` route gets no such fence for free — this
- * reproduces the essential check (reject any request whose `Origin`, when
- * present, doesn't match this server's own scheme+host+port) ourselves.
- * Consistent with, not a new gap in, the existing threat model: a
- * `host: '0.0.0.0'` deployment is already documented as deliberate exposure
- * with no TLS/auth/origin policy of its own; this guard only ever narrows
- * what such a deployment already accepts.
+ * `ctx.webServer.register()` route gets no such fence for free, so this
+ * reproduces it:
+ *
+ * - `Host` must name this server: a loopback name or, on a `0.0.0.0` bind, one
+ *   of this machine's own addresses, on the server's port. This is the
+ *   DNS-rebinding defense: a rebound page's requests carry the attacker's
+ *   hostname in `Host`, even though they reach 127.0.0.1.
+ * - `Origin`, when present, must be exactly this `Host` (same-origin). Browsers
+ *   omit `Origin` on some same-origin GETs; a non-browser client (curl, a
+ *   test) may omit it entirely. Either is fine once `Host` has passed.
+ *
+ * The JSON API routes additionally require a JSON POST (see `routes.ts`),
+ * which no cross-site page can send without a CORS preflight this server
+ * never answers.
  */
-export function isTrustedOrigin(ctx: Context, req: IncomingMessage): boolean {
-  const origin = req.headers.origin
-  // No Origin header at all (e.g. a same-process curl/test call) is trusted —
-  // browsers always send Origin for cross-origin fetches and same-origin
-  // navigations that matter here; its absence is not itself the attack this
-  // guards against.
-  if (origin === undefined) return true
+export function isTrustedRequest(ctx: Context, req: IncomingMessage): boolean {
+  const hostHeader = req.headers.host
+  if (hostHeader === undefined) return false
+  const host = parseUrl(`http://${hostHeader}`)
+  if (host === undefined || host.pathname !== '/' || host.username !== '' || host.password !== '') return false
+  if (effectivePort(host) !== String(ctx.webServer.port)) return false
+  if (!allowedHostnames(ctx.webServer.host).has(host.hostname)) return false
 
-  const expectedHosts = new Set([ctx.webServer.host, 'localhost'])
-  try {
-    const url = new URL(origin)
-    return url.port === String(ctx.webServer.port) && expectedHosts.has(url.hostname)
-  } catch {
-    return false
-  }
+  const originHeader = req.headers.origin
+  if (originHeader === undefined) return true
+  const origin = parseUrl(originHeader)
+  if (origin === undefined || (origin.protocol !== 'http:' && origin.protocol !== 'https:')) return false
+  return origin.hostname === host.hostname && effectivePort(origin) === effectivePort(host)
 }

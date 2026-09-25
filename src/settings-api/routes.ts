@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { getSourceComments, setComment } from '../data-source/persistence/comments-store.ts'
 import { DataAgentError } from '../data-source/errors.ts'
 import { mergeSchemaComments } from '../data-source/schema-comments.ts'
-import { isTrustedOrigin } from './trust.ts'
+import { isTrustedRequest } from './trust.ts'
 
 const ROUTE_PREFIX = '/dsh-data-agent/api'
 const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
@@ -47,18 +47,37 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload)
 }
 
-/** Wrap one route handler with the trust check and uniform error-to-JSON mapping. */
+/** `application/json`, optionally with parameters such as `; charset=utf-8`. */
+function isJsonContentType(req: IncomingMessage): boolean {
+  return req.headers['content-type']?.split(';')[0]?.trim().toLowerCase() === 'application/json'
+}
+
+/**
+ * Wrap one route handler with the trust check, the JSON-POST requirement, and
+ * uniform error-to-JSON mapping. Every route — reads included — is a JSON
+ * POST: a cross-site page can't send one without a CORS preflight, which
+ * this server never answers, so no route can be driven (or, via DNS
+ * rebinding, read) by a page from another origin.
+ */
 function jsonRoute(
   ctx: Context,
   handler: (req: IncomingMessage, body: Record<string, unknown>) => Promise<unknown>,
 ): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
   return async (req, res) => {
-    if (!isTrustedOrigin(ctx, req)) {
-      sendJson(res, 403, { error: 'Origin not trusted' })
+    if (!isTrustedRequest(ctx, req)) {
+      sendJson(res, 403, { error: 'Request not trusted' })
+      return
+    }
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { error: 'Use POST' })
+      return
+    }
+    if (!isJsonContentType(req)) {
+      sendJson(res, 415, { error: 'Content-Type must be application/json' })
       return
     }
     try {
-      const body = req.method === 'GET' ? {} : await readJsonBody(req)
+      const body = await readJsonBody(req)
       const result = await handler(req, body)
       sendJson(res, 200, result)
     } catch (error) {

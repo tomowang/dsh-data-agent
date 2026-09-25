@@ -34,11 +34,15 @@ interface FakeResponse {
   body: unknown
 }
 
-function fakeReq(body: unknown, origin?: string): IncomingMessage {
+function fakeReq(
+  body: unknown,
+  origin?: string,
+  overrides: { method?: string, host?: string, contentType?: string } = {},
+): IncomingMessage {
   const raw = Buffer.from(JSON.stringify(body))
   const req = {
-    method: 'POST',
-    headers: { origin },
+    method: overrides.method ?? 'POST',
+    headers: { host: overrides.host ?? '127.0.0.1:3080', origin, 'content-type': overrides.contentType ?? 'application/json' },
     async *[Symbol.asyncIterator]() { yield raw },
   }
   return req as unknown as IncomingMessage
@@ -75,6 +79,46 @@ describe('settings-api routes', () => {
     const { res, result } = fakeRes()
     await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, 'http://evil.example'), res)
     expect(result.status).toBe(403)
+    await dispose()
+  })
+
+  it('rejects a DNS-rebinding request (foreign Host header) with 403, even with no Origin', async () => {
+    const { routes, dispose } = await createTestContext()
+    const { res, result } = fakeRes()
+    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, undefined, { host: 'evil.example:3080' }), res)
+    expect(result.status).toBe(403)
+    await dispose()
+  })
+
+  it('accepts same-origin requests addressed as localhost, 127.0.0.1, or [::1]', async () => {
+    const { routes, dispose } = await createTestContext()
+    for (const authority of ['localhost:3080', '127.0.0.1:3080', '[::1]:3080']) {
+      const { res, result } = fakeRes()
+      await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, `http://${authority}`, { host: authority }), res)
+      expect(result.status).toBe(200)
+    }
+    await dispose()
+  })
+
+  it('requires POST with a JSON body, so no cross-site page can call a route without a CORS preflight', async () => {
+    const { routes, dispose } = await createTestContext()
+    const get = fakeRes()
+    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, undefined, { method: 'GET' }), get.res)
+    expect(get.result.status).toBe(405)
+
+    const form = fakeRes()
+    await routes.get('/dsh-data-agent/api/remove-source')?.(
+      fakeReq({ name: 'x' }, undefined, { contentType: 'text/plain' }),
+      form.res,
+    )
+    expect(form.result.status).toBe(415)
+
+    const charset = fakeRes()
+    await routes.get('/dsh-data-agent/api/list-sources')?.(
+      fakeReq({}, undefined, { contentType: 'application/json; charset=utf-8' }),
+      charset.res,
+    )
+    expect(charset.result.status).toBe(200)
     await dispose()
   })
 
