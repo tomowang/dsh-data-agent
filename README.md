@@ -1,7 +1,8 @@
 # dsh-data-agent
 
 [![npm version](https://img.shields.io/npm/v/@tomowang/dsh-data-agent.svg)](https://www.npmjs.com/package/@tomowang/dsh-data-agent)
-[![CI status](https://github.com/tomowang/dsh-data-agent/actions/workflows/release.yml/badge.svg)](https://github.com/tomowang/dsh-data-agent/actions/workflows/release.yml)
+[![CI status](https://github.com/tomowang/dsh-data-agent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tomowang/dsh-data-agent/actions/workflows/ci.yml)
+[![release status](https://github.com/tomowang/dsh-data-agent/actions/workflows/release.yml/badge.svg)](https://github.com/tomowang/dsh-data-agent/actions/workflows/release.yml)
 [![license](https://img.shields.io/npm/l/@tomowang/dsh-data-agent.svg)](LICENSE)
 
 A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) plugin for managing database connections and running SQL, both conversationally and from the Web UI's Settings page.
