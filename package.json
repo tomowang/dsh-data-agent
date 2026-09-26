@@ -52,6 +52,14 @@
     "prepack": "pnpm run build",
     "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": ">=0.1.7-rc.2"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@clickhouse/client": "^1.23.1",
     "@deepseek-ai/dsh-atomic-write": "0.0.1-rc.1",

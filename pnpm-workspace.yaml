@@ -6,3 +6,10 @@ packages:
 allowBuilds:
   esbuild: true
   skia-canvas: true
+
+# package.json declares an optional `@deepseek-ai/dsh` peer purely as a
+# compatibility range the dsh runtime checks when it loads the plugin;
+# nothing imports it. Keep pnpm from installing the whole dsh CLI into this
+# repo to satisfy it. (dsh's own plugin installs don't auto-install peers.)
+overrides:
+  '@deepseek-ai/dsh': '-'
