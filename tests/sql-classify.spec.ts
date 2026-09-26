@@ -124,4 +124,38 @@ describe('assertSqlAllowed', () => {
       expect(() => assertSqlAllowed('UPDATE orders SET note = \'vacuum into\'', 'sqlite', false)).not.toThrow()
     })
   })
+
+  describe('functions that escape read-only mode', () => {
+    const denied = [
+      ['postgres', "SELECT dblink_exec('dbname=x', 'DELETE FROM t')", 'dblink_exec'],
+      ['postgres', "SELECT public.dblink_exec('x', 'y')", 'dblink_exec'],
+      ['postgres', "SELECT pg_read_file('/etc/passwd')", 'pg_read_file'],
+      ['postgres', "SELECT pg_ls_dir('.')", 'pg_ls_dir'],
+      ['postgres', 'SELECT pg_advisory_lock(1)', 'pg_advisory_lock'],
+      ['postgres', 'SELECT pg_try_advisory_lock_shared(1)', 'pg_try_advisory_lock_shared'],
+      ['postgres', "SELECT id FROM t WHERE id IN (SELECT lo_export(1, '/tmp/x'))", 'lo_export'],
+      ['mysql', "SELECT LOAD_FILE('/etc/passwd')", 'load_file'],
+      ['mysql', "SELECT `load_file`('/etc/passwd')", 'load_file'],
+      ['mysql', "SELECT GET_LOCK('a', 1)", 'get_lock'],
+      ['clickhouse', "SELECT file('data.csv')", 'file'],
+      ['sqlite', "SELECT load_extension('x')", 'load_extension'],
+    ] as const
+
+    for (const [engine, sql, name] of denied) {
+      it(`rejects ${name} on a read-only ${engine} source: ${sql}`, () => {
+        expect(() => assertSqlAllowed(sql, engine, true)).toThrow(new RegExp(`function "${name}"`))
+      })
+
+      it(`allows ${name} on a read-write ${engine} source: ${sql}`, () => {
+        expect(() => assertSqlAllowed(sql, engine, false)).not.toThrow()
+      })
+    }
+
+    it('allows ordinary and transaction-scoped functions', () => {
+      expect(() => assertSqlAllowed('SELECT lower(name), count(*) FROM orders GROUP BY 1', 'postgres', true)).not.toThrow()
+      expect(() => assertSqlAllowed('SELECT pg_advisory_xact_lock(1)', 'postgres', true)).not.toThrow()
+      expect(() => assertSqlAllowed('SELECT pg_advisory_unlock(1)', 'postgres', true)).not.toThrow()
+      expect(() => assertSqlAllowed('SELECT profile FROM users', 'clickhouse', true)).not.toThrow()
+    })
+  })
 })

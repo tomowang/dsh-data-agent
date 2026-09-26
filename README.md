@@ -27,6 +27,8 @@ config:
     - /home/me/data
 ```
 
+Read-only mode isn't a permission system. On a read-only source, `da_run_sql` rejects writes and runs each query under the database's own read-only mode, and it refuses functions known to get around that: reading server files (`pg_read_file`, `LOAD_FILE`, ClickHouse `file()`), writing through a second connection (`dblink_exec`), and taking session locks that outlive the query (`pg_advisory_lock`, `GET_LOCK`). That list can't cover every function or extension installed on your server, so connect each source as a database user with only the privileges you want chat to have — e.g. `SELECT` on the tables it should see, and no superuser, `FILE`, or `pg_read_server_files`.
+
 ## Demo
 
 https://github.com/user-attachments/assets/fa149214-cdd0-4820-9711-8e7451bb462f

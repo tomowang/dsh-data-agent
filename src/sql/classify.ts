@@ -59,9 +59,11 @@ function parseStatements(sql: string, engine: Engine): AstLike[] {
  * input-validation error, not a `DataAgentError`) on any violation.
  *
  * This is a fast, friendly first gate, not the enforcement boundary: a
- * SELECT can still call side-effecting functions (`setval`, `GET_LOCK`, ...)
- * the parser can't see. Each adapter additionally runs read-only sources
- * under the database's own read-only mode (see `adapters/`).
+ * SELECT can still call side-effecting functions (`setval`, an extension's
+ * UDF, ...) that no list here can anticipate. Each adapter additionally runs
+ * read-only sources under the database's own read-only mode (see
+ * `adapters/`), and the README tells users to connect with a
+ * least-privilege database user for what neither layer covers.
  */
 export function assertSqlAllowed(sql: string, engine: Engine, readOnly: boolean): void {
   const statements = parseStatements(sql, engine)
@@ -148,6 +150,30 @@ const CLICKHOUSE_SAFE_TABLE_FUNCTIONS = new Set([
   'numbers', 'numbers_mt', 'zeros', 'zeros_mt', 'generate_series', 'generateseries', 'values', 'null',
 ])
 
+/**
+ * Functions a read-only source rejects anywhere in a statement, because the
+ * database's own read-only mode doesn't contain them: they read files on the
+ * database server, act through a second connection outside this query's
+ * read-only transaction (`dblink_exec`), or take session-level locks that
+ * outlive its ROLLBACK on the pooled connection. A known-bad list, not a
+ * boundary — anything missing from it (an extension or UDF installed on the
+ * server) still runs, which is why the README tells users to connect with a
+ * least-privilege database user.
+ */
+const READ_ONLY_DENIED_FUNCTIONS: Record<Engine, RegExp> = {
+  postgres: new RegExp('^(?:' + [
+    'dblink\\w*',
+    'pg_read_file', 'pg_read_binary_file', 'pg_ls_\\w+', 'pg_stat_file', 'lo_import', 'lo_export', 'pg_file_\\w+',
+    'pg_(?:try_)?advisory_lock(?:_shared)?',
+    'pg_terminate_backend', 'pg_cancel_backend', 'pg_reload_conf',
+  ].join('|') + ')$'),
+  mysql: /^(?:load_file|get_lock|sys_exec|sys_eval|sys_bineval)$/,
+  // ClickHouse's scalar `file()` reads from the server's user_files; its
+  // external *table* functions are handled separately below.
+  clickhouse: /^file$/,
+  sqlite: /^load_extension$/,
+}
+
 function functionName(expr: unknown): string | undefined {
   const name = (expr as { name?: { name?: { value?: unknown }[] } } | undefined)?.name?.name
   const last = name?.[name.length - 1]?.value
@@ -157,8 +183,9 @@ function functionName(expr: unknown): string | undefined {
 /**
  * Walk the whole AST (subqueries, CTEs, UNION arms) for read-only-looking
  * SELECTs that still write or reach outside the database: `SELECT ... INTO`
- * (a new table on PostgreSQL, a server-side file on MySQL) and, on
- * ClickHouse, external-access table functions in any FROM/JOIN.
+ * (a new table on PostgreSQL, a server-side file on MySQL), calls to
+ * `READ_ONLY_DENIED_FUNCTIONS`, and, on ClickHouse, external-access table
+ * functions in any FROM/JOIN.
  */
 function assertNoReadOnlyEscapes(node: unknown, engine: Engine): void {
   if (Array.isArray(node)) {
@@ -172,6 +199,16 @@ function assertNoReadOnlyEscapes(node: unknown, engine: Engine): void {
     throw new SqlRejectedError(
       'This data source is read-only: SELECT ... INTO writes a table or file and is not allowed.',
     )
+  }
+
+  if (record.type === 'function') {
+    const name = functionName(record)
+    if (name !== undefined && READ_ONLY_DENIED_FUNCTIONS[engine].test(name)) {
+      throw new SqlRejectedError(
+        `This data source is read-only: the function "${name}" can read server files, act outside this query's `
+        + 'read-only transaction, or hold locks past it, and is not allowed.',
+      )
+    }
   }
 
   if (engine === 'clickhouse' && Array.isArray(record.from)) {
