@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.1] - 2026-09-26
+
+### Bug Fixes
+
+- Stop postgres sources from sending the host's PGPASSWORD
+- Stop runaway sqlite queries from freezing the host
+- Refuse sqlite attach and vacuum into from chat
+- Refuse functions that escape read-only mode
+- Validate data-source input from the settings api
+
 ## [0.4.0] - 2026-09-26
 
 ### Bug Fixes
