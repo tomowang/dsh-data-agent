@@ -56,11 +56,12 @@ export function apply(ctx: Context, config: Config): void {
   })
 
   // Settings-page API: a separate composition unit so it simply never
-  // activates on a profile with no webServer (headless/ACP), rather than
-  // failing the whole plugin.
+  // activates on a profile with no browser Connection (headless/ACP), rather
+  // than failing the whole plugin. Its routes live on Connection's
+  // authenticated `/api` channel, not raw webServer routes.
   ctx.plugin({
     name: 'dsh-data-agent-settings-api',
-    inject: ['webServer', 'dataAgent', 'tools'],
+    inject: ['connection', 'dataAgent', 'tools'],
     apply: applySettingsApiRoutes,
   })
 

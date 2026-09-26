@@ -16,10 +16,10 @@ describe('settings API client', () => {
     const fetch = stubFetch()
     await listSources()
     const [url] = fetch.mock.calls[0]! as unknown as [string]
-    expect(url).toBe('dsh-data-agent/api/list-sources')
+    expect(url).toBe('api/dsh-data-agent/list-sources')
     expect(url.startsWith('/')).toBe(false)
     // Resolved the way a browser resolves it against `<base href="./">` at a mount.
-    expect(new URL(url, 'https://host.example/tools/dsh/').pathname).toBe('/tools/dsh/dsh-data-agent/api/list-sources')
+    expect(new URL(url, 'https://host.example/tools/dsh/').pathname).toBe('/tools/dsh/api/dsh-data-agent/list-sources')
   })
 
   it('sends every call as a JSON POST', async () => {
@@ -31,5 +31,17 @@ describe('settings API client', () => {
       expect(init.headers).toEqual({ 'content-type': 'application/json' })
     }
     expect(JSON.parse((fetch.mock.calls[1]! as unknown as [string, RequestInit])[1].body as string)).toEqual({ name: 'prod', readOnly: true })
+  })
+
+  it('explains the harness\'s own non-JSON rejections instead of failing to parse them', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('unauthorized', { status: 401 })))
+    await expect(listSources()).rejects.toThrow(/Not signed in to dsh/)
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('forbidden', { status: 403 })))
+    await expect(listSources()).rejects.toThrow(/untrusted host or origin/)
+  })
+
+  it('surfaces a route\'s own JSON error message', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'No data source named "x"' }), { status: 404 })))
+    await expect(setReadOnly('x', true)).rejects.toThrow('No data source named "x"')
   })
 })

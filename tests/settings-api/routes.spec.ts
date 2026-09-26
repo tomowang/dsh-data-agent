@@ -1,11 +1,11 @@
-import type { IncomingMessage, ServerResponse } from 'node:http'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, type ConnectionFetchRoute } from '@deepseek-ai/cordis'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DataSourceRegistry } from '../../src/data-source/registry.ts'
+import { SETTINGS_API_PATH } from '../../src/settings-api/protocol.ts'
 import { applySettingsApiRoutes } from '../../src/settings-api/routes.ts'
 
 let dshHome: string
@@ -29,45 +29,24 @@ afterEach(async () => {
   await rm(dshHome, { recursive: true, force: true })
 })
 
-interface FakeResponse {
-  status: number | undefined
-  body: unknown
-}
+type Routes = Map<string, ConnectionFetchRoute>
 
-function fakeReq(
-  body: unknown,
-  origin?: string,
-  overrides: { method?: string, host?: string, contentType?: string } = {},
-): IncomingMessage {
-  const raw = Buffer.from(JSON.stringify(body))
-  const req = {
-    method: overrides.method ?? 'POST',
-    headers: { host: overrides.host ?? '127.0.0.1:3080', origin, 'content-type': overrides.contentType ?? 'application/json' },
-    async *[Symbol.asyncIterator]() { yield raw },
-  }
-  return req as unknown as IncomingMessage
-}
-
-function fakeRes(): { res: ServerResponse, result: FakeResponse } {
-  const result: FakeResponse = { status: undefined, body: undefined }
-  const res = {
-    writeHead(status: number) { result.status = status; return res },
-    end(payload: string) { result.body = JSON.parse(payload) },
-  }
-  return { res: res as unknown as ServerResponse, result }
-}
-
-async function createTestContext(): Promise<{ ctx: Context, routes: Map<string, (req: IncomingMessage, res: ServerResponse) => void | Promise<void>>, dispose: () => Promise<void> }> {
+/**
+ * Stand-in for the harness's `ctx.connection.fetch` registry. Like the real
+ * one, a duplicate path throws and a route stays until its disposer runs. The
+ * harness's own Host/Origin fence and cookie authentication run before a
+ * route's `fetch`, so they are the harness's to test, not ours.
+ */
+async function createTestContext(): Promise<{ ctx: Context, routes: Routes, dispose: () => Promise<void> }> {
   const ctx = new Context()
-  const routes = new Map<string, (req: IncomingMessage, res: ServerResponse) => void | Promise<void>>()
-  ctx.webServer = {
-    host: '127.0.0.1',
-    port: 3080,
-    // Mirrors the real webserver: a duplicate path throws, and nothing is removed until the disposer runs.
-    register: (route: { path: string, handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void> }) => {
-      if (routes.has(route.path)) throw new Error(`webserver: duplicate exact route "${route.path}"`)
-      routes.set(route.path, route.handler)
-      return () => routes.delete(route.path)
+  const routes: Routes = new Map()
+  ctx.connection = {
+    fetch: {
+      register(route) {
+        if (routes.has(route.path)) throw new Error(`connection: exact Fetch route "${route.path}" is already registered`)
+        routes.set(route.path, route)
+        return async () => { routes.delete(route.path) }
+      },
     },
   }
   const fiber = await ctx.plugin(DataSourceRegistry)
@@ -75,7 +54,37 @@ async function createTestContext(): Promise<{ ctx: Context, routes: Map<string, 
   return { ctx, routes, dispose: () => fiber.dispose() }
 }
 
+/** Call one Settings API route the way the harness would after authorizing the request. */
+async function call(
+  routes: Routes,
+  name: string,
+  body: unknown = {},
+  contentType = 'application/json',
+): Promise<{ status: number, body: unknown }> {
+  const route = routes.get(`${SETTINGS_API_PATH}/${name}`)
+  if (route === undefined) throw new Error(`no route for ${name}`)
+  const response = await route.fetch(new Request(`http://127.0.0.1:3080${SETTINGS_API_PATH}/${name}`, {
+    method: 'POST',
+    headers: { 'content-type': contentType },
+    body: JSON.stringify(body),
+  }))
+  return { status: response.status, body: await response.json() }
+}
+
 describe('settings-api routes', () => {
+  it('registers every route as an exact, buffered, POST-only route on the harness\'s authenticated /api channel', async () => {
+    const { routes, dispose } = await createTestContext()
+    expect([...routes.keys()].sort()).toEqual([
+      'add-source', 'edit-source', 'get-schema', 'list-sources', 'list-tools',
+      'remove-source', 'set-comment', 'set-read-only', 'test-connection',
+    ].map(name => `/api/dsh-data-agent/${name}`))
+    for (const route of routes.values()) {
+      expect(route.methods).toEqual(['POST'])
+      expect(route.requestBody).toBe('buffered')
+    }
+    await dispose()
+  })
+
   it('removes its routes when its plugin unloads, so a reload (e.g. a config change) re-registers cleanly', async () => {
     const { ctx, routes, dispose } = await createTestContext()
     const count = routes.size
@@ -92,105 +101,45 @@ describe('settings-api routes', () => {
     await dispose()
   })
 
-  it('rejects a request from an untrusted origin with 403', async () => {
+  it('requires a JSON body', async () => {
     const { routes, dispose } = await createTestContext()
-    const { res, result } = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, 'http://evil.example'), res)
-    expect(result.status).toBe(403)
-    await dispose()
-  })
-
-  it('rejects a DNS-rebinding request (foreign Host header) with 403, even with no Origin', async () => {
-    const { routes, dispose } = await createTestContext()
-    const { res, result } = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, undefined, { host: 'evil.example:3080' }), res)
-    expect(result.status).toBe(403)
-    await dispose()
-  })
-
-  it('accepts same-origin requests addressed as localhost, 127.0.0.1, or [::1]', async () => {
-    const { routes, dispose } = await createTestContext()
-    for (const authority of ['localhost:3080', '127.0.0.1:3080', '[::1]:3080']) {
-      const { res, result } = fakeRes()
-      await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, `http://${authority}`, { host: authority }), res)
-      expect(result.status).toBe(200)
-    }
-    await dispose()
-  })
-
-  it('requires POST with a JSON body, so no cross-site page can call a route without a CORS preflight', async () => {
-    const { routes, dispose } = await createTestContext()
-    const get = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}, undefined, { method: 'GET' }), get.res)
-    expect(get.result.status).toBe(405)
-
-    const form = fakeRes()
-    await routes.get('/dsh-data-agent/api/remove-source')?.(
-      fakeReq({ name: 'x' }, undefined, { contentType: 'text/plain' }),
-      form.res,
-    )
-    expect(form.result.status).toBe(415)
-
-    const charset = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-sources')?.(
-      fakeReq({}, undefined, { contentType: 'application/json; charset=utf-8' }),
-      charset.res,
-    )
-    expect(charset.result.status).toBe(200)
+    expect((await call(routes, 'remove-source', { name: 'x' }, 'text/plain')).status).toBe(415)
+    expect((await call(routes, 'list-sources', {}, 'application/json; charset=utf-8')).status).toBe(200)
     await dispose()
   })
 
   it('add-source, list-sources, get-schema, set-comment, remove-source round-trip', async () => {
     const { routes, dispose } = await createTestContext()
 
-    const add = fakeRes()
-    await routes.get('/dsh-data-agent/api/add-source')?.(
-      fakeReq({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true }),
-      add.res,
-    )
-    expect(add.result.status).toBe(200)
-    expect((add.result.body as { name: string }).name).toBe('sample')
+    const add = await call(routes, 'add-source', { name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })
+    expect(add.status).toBe(200)
+    expect((add.body as { name: string }).name).toBe('sample')
 
-    const list = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}), list.res)
-    expect((list.result.body as { sources: { name: string }[] }).sources.map(s => s.name)).toEqual(['sample'])
+    const list = await call(routes, 'list-sources')
+    expect((list.body as { sources: { name: string }[] }).sources.map(s => s.name)).toEqual(['sample'])
 
-    const setComment = fakeRes()
-    await routes.get('/dsh-data-agent/api/set-comment')?.(
-      fakeReq({ sourceName: 'sample', table: 'orders', comment: 'Customer orders' }),
-      setComment.res,
-    )
-    expect(setComment.result.status).toBe(200)
+    const comment = await call(routes, 'set-comment', { sourceName: 'sample', table: 'orders', comment: 'Customer orders' })
+    expect(comment.status).toBe(200)
 
-    const schema = fakeRes()
-    await routes.get('/dsh-data-agent/api/get-schema')?.(fakeReq({ sourceName: 'sample' }), schema.res)
-    expect(schema.result.status).toBe(200)
-    expect((schema.result.body as { tables: { name: string, comment?: string }[] }).tables).toEqual([
+    const schema = await call(routes, 'get-schema', { sourceName: 'sample' })
+    expect(schema.status).toBe(200)
+    expect((schema.body as { tables: { name: string, comment?: string }[] }).tables).toEqual([
       { name: 'orders', comment: 'Customer orders', columnCount: 2 },
     ])
 
-    const remove = fakeRes()
-    await routes.get('/dsh-data-agent/api/remove-source')?.(fakeReq({ name: 'sample' }), remove.res)
-    expect(remove.result.body).toEqual({ name: 'sample', found: true })
+    const remove = await call(routes, 'remove-source', { name: 'sample' })
+    expect(remove.body).toEqual({ name: 'sample', found: true })
 
     await dispose()
   })
 
   it('edit-source patches provided fields and clears explicit nulls, leaving omitted fields untouched', async () => {
     const { routes, dispose } = await createTestContext()
+    await call(routes, 'add-source', { name: 'sample', engine: 'mysql', host: 'db1.internal', database: 'app', user: 'root', readOnly: true })
 
-    await routes.get('/dsh-data-agent/api/add-source')?.(
-      fakeReq({ name: 'sample', engine: 'mysql', host: 'db1.internal', database: 'app', user: 'root', readOnly: true }),
-      fakeRes().res,
-    )
-
-    const edit = fakeRes()
-    await routes.get('/dsh-data-agent/api/edit-source')?.(
-      fakeReq({ name: 'sample', host: 'db2.internal', user: null }),
-      edit.res,
-    )
-    expect(edit.result.status).toBe(200)
-    const updated = edit.result.body as { host?: string, user?: string, database: string }
+    const edit = await call(routes, 'edit-source', { name: 'sample', host: 'db2.internal', user: null })
+    expect(edit.status).toBe(200)
+    const updated = edit.body as { host?: string, user?: string, database: string }
     expect(updated.host).toBe('db2.internal')
     expect('user' in updated).toBe(false)
     expect(updated.database).toBe('app')
@@ -209,8 +158,7 @@ describe('settings-api routes', () => {
       ],
     }
 
-    const { res, result } = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-tools')?.(fakeReq({}), res)
+    const result = await call(routes, 'list-tools')
     expect(result.status).toBe(200)
     expect(result.body).toEqual({
       tools: [
@@ -223,35 +171,28 @@ describe('settings-api routes', () => {
 
   it('set-read-only rejects a missing or non-boolean readOnly instead of coercing it to read-write', async () => {
     const { routes, dispose } = await createTestContext()
-    await routes.get('/dsh-data-agent/api/add-source')?.(
-      fakeReq({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true }),
-      fakeRes().res,
-    )
+    await call(routes, 'add-source', { name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })
 
     for (const body of [{ name: 'sample' }, { name: 'sample', readOnly: 'false' }]) {
-      const { res, result } = fakeRes()
-      await routes.get('/dsh-data-agent/api/set-read-only')?.(fakeReq(body), res)
-      expect(result.status).toBe(400)
+      expect((await call(routes, 'set-read-only', body)).status).toBe(400)
     }
+    const list = await call(routes, 'list-sources')
+    expect((list.body as { sources: { readOnly: boolean }[] }).sources[0]!.readOnly).toBe(true)
 
-    const list = fakeRes()
-    await routes.get('/dsh-data-agent/api/list-sources')?.(fakeReq({}), list.res)
-    expect((list.result.body as { sources: { readOnly: boolean }[] }).sources[0]!.readOnly).toBe(true)
-
-    const set = fakeRes()
-    await routes.get('/dsh-data-agent/api/set-read-only')?.(fakeReq({ name: 'sample', readOnly: false }), set.res)
-    expect(set.result.status).toBe(200)
-    expect((set.result.body as { readOnly: boolean }).readOnly).toBe(false)
+    const set = await call(routes, 'set-read-only', { name: 'sample', readOnly: false })
+    expect(set.status).toBe(200)
+    expect((set.body as { readOnly: boolean }).readOnly).toBe(false)
 
     await dispose()
   })
 
-  it('maps an unknown source name to a 404-shaped error, not a crash', async () => {
+  it('maps an unknown source name to a 404-shaped error, and a malformed body to 400, not a crash', async () => {
     const { routes, dispose } = await createTestContext()
-    const { res, result } = fakeRes()
-    await routes.get('/dsh-data-agent/api/test-connection')?.(fakeReq({ name: 'missing' }), res)
-    expect(result.status).toBe(404)
-    expect(result.body).toEqual({ error: expect.stringContaining('missing') })
+    const missing = await call(routes, 'test-connection', { name: 'missing' })
+    expect(missing.status).toBe(404)
+    expect(missing.body).toEqual({ error: expect.stringContaining('missing') })
+
+    expect((await call(routes, 'list-sources', [1, 2])).status).toBe(400)
     await dispose()
   })
 })

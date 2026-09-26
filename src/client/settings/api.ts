@@ -1,31 +1,42 @@
 import type { ConnectionTestResult, DataSourceRecord, SchemaResult } from '../../data-source/types.ts'
+import { SETTINGS_API_ROUTE } from '../../settings-api/protocol.ts'
 
 /**
- * Document-relative, not `/dsh-data-agent/api`: the harness shell sets
- * `<base href="./">`, so this resolves under whatever mount served the page —
- * the origin root, or a reverse-proxy subpath such as `/tools/dsh/` that
- * forwards `/tools/dsh/...` as `/...`. An origin-absolute path would skip the
- * mount and miss. The Host still registers the absolute path (see
- * `settings-api/routes.ts`), which is what a request reaches once the proxy
- * strips its prefix.
+ * Every route is a JSON POST, reads included (see `settings-api/routes.ts`).
+ * The URL is document-relative (`api/dsh-data-agent/...`): the harness shell
+ * sets `<base href="./">`, so it resolves under whatever mount served the
+ * page, including a reverse-proxy subpath. Being same-origin, the request
+ * carries the harness's browser-session cookie, which its `/api` channel
+ * requires.
  */
-export const API_ROUTE = 'dsh-data-agent/api'
-
-/** Every route is a JSON POST, reads included — the Host requires it (see `settings-api/routes.ts`). */
 async function call<T>(path: string, body: unknown = {}): Promise<T> {
-  const response = await fetch(`${API_ROUTE}/${path}`, {
+  const response = await fetch(`${SETTINGS_API_ROUTE}/${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
-  const payload: unknown = await response.json()
-  if (!response.ok) {
-    const message = typeof payload === 'object' && payload !== null && 'error' in payload
-      ? String((payload as { error: unknown }).error)
-      : `request failed (${response.status})`
-    throw new Error(message)
+  // The harness's own rejections (401/403/413) arrive before our handler and
+  // aren't JSON, so parse defensively rather than surface a SyntaxError.
+  const text = await response.text()
+  let payload: unknown
+  try {
+    payload = JSON.parse(text)
+  } catch {
+    payload = undefined
   }
+  if (!response.ok) throw new Error(errorMessage(response.status, payload))
+  if (payload === undefined) throw new Error(`request failed: the response was not JSON (${response.status})`)
   return payload as T
+}
+
+function errorMessage(status: number, payload: unknown): string {
+  if (typeof payload === 'object' && payload !== null && 'error' in payload) {
+    return String((payload as { error: unknown }).error)
+  }
+  if (status === 401) return 'Not signed in to dsh in this browser. Reopen dsh from the URL it printed at startup.'
+  if (status === 403) return 'Request refused by dsh (untrusted host or origin).'
+  if (status === 413) return 'Request too large.'
+  return `request failed (${status})`
 }
 
 export function listSources(): Promise<{ sources: DataSourceRecord[] }> {

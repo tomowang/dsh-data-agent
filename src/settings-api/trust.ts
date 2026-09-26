@@ -39,11 +39,13 @@ function effectivePort(url: URL): string {
 }
 
 /**
- * A minimal same-origin guard for our raw `ctx.webServer` routes. Unlike
- * `ctx.remote` calls (routed through Connection's own `/api` prefix, which
- * carries its own Origin/DNS-rebinding trust fence), a plain
- * `ctx.webServer.register()` route gets no such fence for free, so this
- * reproduces it:
+ * A minimal same-origin guard for the one raw `ctx.webServer` route left:
+ * chart images. The Settings API lives on Connection's `/api` channel, which
+ * applies the harness's own fence plus cookie authentication (see
+ * `routes.ts`). A plain `ctx.webServer.register()` route gets neither, and
+ * chart images can't carry the cookie (they're loaded by `<img>` tags,
+ * including from the desktop app's non-same-site page), so this reproduces
+ * the fence:
  *
  * - `Host` must name this server: a loopback name or, on a `0.0.0.0` bind, one
  *   of this machine's own addresses, on the server's port. This is the
@@ -52,10 +54,6 @@ function effectivePort(url: URL): string {
  * - `Origin`, when present, must be exactly this `Host` (same-origin). Browsers
  *   omit `Origin` on some same-origin GETs; a non-browser client (curl, a
  *   test) may omit it entirely. Either is fine once `Host` has passed.
- *
- * The JSON API routes additionally require a JSON POST (see `routes.ts`),
- * which no cross-site page can send without a CORS preflight this server
- * never answers.
  */
 export function isTrustedRequest(ctx: Context, req: IncomingMessage): boolean {
   const hostHeader = req.headers.host
