@@ -19,7 +19,7 @@ Secrets are never stored directly: connections reference a `passwordEnv` (an env
 
 The variable name must start with `DSH_DA_` (e.g. `DSH_DA_PROD_DB_PASSWORD`), so a source can never read an unrelated secret such as an API key from the host environment. Credentials are attached only from Settings → Data Sources, never from chat: the chat tools can't set `passwordEnv`, and on a source that has one they can't change `host`, `port`, `user`, `ssl`, `sslmode`, or `sslrootcert`. That way a prompt-injected model can't redirect a saved password to another host.
 
-SQLite file paths get the same treatment. From chat, a SQLite source's path must be inside a directory listed in the plugin's `sqliteChatDirs` config, checked after resolving symlinks and `..`; `file:` URIs are refused. The list is empty by default, so SQLite sources are added from Settings unless you opt a directory in:
+SQLite file paths get the same treatment. From chat, a SQLite source's path must be inside a directory listed in the plugin's `sqliteChatDirs` config, checked after resolving symlinks and `..`; `file:` URIs are refused. `da_run_sql` also refuses SQLite `ATTACH` and `VACUUM INTO` on every source, read-write included, since both open or create a database file at any path. The list is empty by default, so SQLite sources are added from Settings unless you opt a directory in:
 
 ```yaml
 config:

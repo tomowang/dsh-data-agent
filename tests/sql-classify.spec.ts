@@ -97,4 +97,31 @@ describe('assertSqlAllowed', () => {
       expect(() => assertSqlAllowed('SELECT * FROM url(\'http://x\', CSV)', 'clickhouse', false)).not.toThrow()
     })
   })
+
+  describe('SQLite file access', () => {
+    for (const readOnly of [true, false]) {
+      const mode = readOnly ? 'read-only' : 'read-write'
+
+      it(`rejects ATTACH DATABASE on a ${mode} source`, () => {
+        expect(() => assertSqlAllowed('ATTACH DATABASE \'/tmp/x.db\' AS x', 'sqlite', readOnly)).toThrow(/ATTACH and VACUUM INTO/)
+      })
+
+      it(`rejects ATTACH behind leading comments on a ${mode} source`, () => {
+        expect(() =>
+          assertSqlAllowed('-- note\n/* block */ attach database \'/tmp/x.db\' as x', 'sqlite', readOnly),
+        ).toThrow(/ATTACH and VACUUM INTO/)
+      })
+
+      it(`rejects the forms the parser can't read on a ${mode} source`, () => {
+        expect(() => assertSqlAllowed('ATTACH \'/tmp/x.db\' AS x', 'sqlite', readOnly)).toThrow()
+        expect(() => assertSqlAllowed('VACUUM INTO \'/tmp/x.db\'', 'sqlite', readOnly)).toThrow()
+        expect(() => assertSqlAllowed('VACUUM main INTO \'/tmp/x.db\'', 'sqlite', readOnly)).toThrow()
+      })
+    }
+
+    it('allows the words inside ordinary statements', () => {
+      expect(() => assertSqlAllowed('SELECT * FROM orders WHERE note = \'attach\'', 'sqlite', true)).not.toThrow()
+      expect(() => assertSqlAllowed('UPDATE orders SET note = \'vacuum into\'', 'sqlite', false)).not.toThrow()
+    })
+  })
 })

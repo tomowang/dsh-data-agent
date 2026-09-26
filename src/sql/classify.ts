@@ -50,9 +50,10 @@ function parseStatements(sql: string, engine: Engine): AstLike[] {
 }
 
 /**
- * Enforce the two safety rules for `da_run_sql`, in order: (1) exactly one
+ * Enforce the safety rules for `da_run_sql`, in order: (1) exactly one
  * top-level statement — blocks statement-stacking regardless of read-only
- * mode; (2) when `readOnly` is set, every statement's type must be in the
+ * mode; (2) on SQLite, no `ATTACH`/`VACUUM INTO`, also regardless of
+ * read-only mode (see `assertNoSqliteFileAccess`); (3) when `readOnly` is set, every statement's type must be in the
  * read-only allowlist, with no read-only-looking escape hatches (see
  * `assertNoReadOnlyEscapes`). Throws `SqlRejectedError` (a plain
  * input-validation error, not a `DataAgentError`) on any violation.
@@ -72,9 +73,11 @@ export function assertSqlAllowed(sql: string, engine: Engine, readOnly: boolean)
     )
   }
 
+  const [statement] = statements
+  if (engine === 'sqlite') assertNoSqliteFileAccess(sql, statement)
+
   if (!readOnly) return
 
-  const [statement] = statements
   if (statement === undefined || !READ_ONLY_TYPES.has(statement.type)) {
     throw new SqlRejectedError(
       `This data source is read-only: "${statement?.type ?? 'unknown'}" statements are not allowed. `
@@ -94,6 +97,45 @@ export function assertSqlAllowed(sql: string, engine: Engine, readOnly: boolean)
   }
 
   assertNoReadOnlyEscapes(statement, engine)
+}
+
+/** `sql` past any leading whitespace and `--` / `/* *\/` comments, the way SQLite's tokenizer skips them. */
+function stripLeadingComments(sql: string): string {
+  let rest = sql
+  for (;;) {
+    rest = rest.trimStart()
+    if (rest.startsWith('--')) {
+      const end = rest.indexOf('\n')
+      rest = end === -1 ? '' : rest.slice(end + 1)
+    } else if (rest.startsWith('/*')) {
+      const end = rest.indexOf('*/', 2)
+      rest = end === -1 ? '' : rest.slice(end + 2)
+    } else {
+      return rest
+    }
+  }
+}
+
+/**
+ * `ATTACH` and `VACUUM INTO` open or create a database file at whatever path
+ * the SQL names, with the host user's permissions — sidestepping the
+ * `sqliteChatDirs` check a source's own path gets. Rejected on every SQLite
+ * source, read-write included: a read-write source is the user's to write
+ * to, not a licence to create files anywhere.
+ *
+ * Checked twice: the AST type, and the statement's leading keyword, which
+ * doesn't depend on what this parser version can parse. `node:sqlite` only
+ * ever runs the first statement of a prepared string, so the leading keyword
+ * is the only place either can appear.
+ */
+function assertNoSqliteFileAccess(sql: string, statement: AstLike | undefined): void {
+  const leading = stripLeadingComments(sql)
+  if (statement?.type === 'attach' || /^attach\b/i.test(leading) || /^vacuum\b[\s\S]*\binto\b/i.test(leading)) {
+    throw new SqlRejectedError(
+      'SQLite ATTACH and VACUUM INTO are not allowed: they open or create a database file at any path. '
+      + 'Ask the user to add that file as its own data source in Settings → Data Sources instead.',
+    )
+  }
 }
 
 /**
