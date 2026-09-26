@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { QUERY_TIMEOUT_MS, setQueryTimeoutMsForTesting } from '../../src/data-source/adapters/adapter.ts'
 import { SqliteAdapter } from '../../src/data-source/adapters/sqlite-adapter.ts'
 import type { DataSourceRecord } from '../../src/data-source/types.ts'
 
@@ -103,5 +104,40 @@ describe('SqliteAdapter', () => {
     const result = await adapter.runQuery('SELECT COUNT(*) AS n FROM customers', { maxRows: 1 })
     expect(result.rows).toEqual([{ n: 3 }])
     await adapter.close()
+  })
+
+  describe('runaway queries', () => {
+    const runaway = 'WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) AS n FROM c'
+
+    afterEach(() => setQueryTimeoutMsForTesting(QUERY_TIMEOUT_MS))
+
+    it('stops a query past the time limit without blocking this process, then reconnects', async () => {
+      setQueryTimeoutMsForTesting(500)
+      const adapter = new SqliteAdapter(record())
+      await adapter.connect()
+
+      let ticks = 0
+      const ticker = setInterval(() => { ticks++ }, 50)
+      try {
+        await expect(adapter.runQuery(runaway, { maxRows: 1 })).rejects.toThrow(/time limit/)
+      } finally {
+        clearInterval(ticker)
+      }
+      // The event loop kept running while the query did.
+      expect(ticks).toBeGreaterThan(3)
+
+      const result = await adapter.runQuery('SELECT COUNT(*) AS n FROM customers', { maxRows: 1 })
+      expect(result.rows).toEqual([{ n: 2 }])
+      await adapter.close()
+    })
+
+    it('closes while a query is running, failing that query', async () => {
+      const adapter = new SqliteAdapter(record())
+      await adapter.connect()
+      const running = expect(adapter.runQuery(runaway, { maxRows: 1 })).rejects.toThrow(/closed/)
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await adapter.close()
+      await running
+    })
   })
 })

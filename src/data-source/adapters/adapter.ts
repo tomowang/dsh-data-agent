@@ -7,17 +7,17 @@ import { PostgresAdapter } from './postgres-adapter.ts'
 import { ClickhouseAdapter } from './clickhouse-adapter.ts'
 
 /**
- * Per-query time limit for the network engines, enforced by the server
- * (PostgreSQL `statement_timeout`) or the driver (MySQL/ClickHouse). Not
- * deployment-configurable, same as run-sql's `HARD_MAX_ROWS`: an unbounded
- * query is a stability invariant, not a preference. SQLite has no equivalent —
- * `node:sqlite` runs synchronously with no interrupt hook.
+ * Per-query time limit, enforced by the server (PostgreSQL
+ * `statement_timeout`), the driver (MySQL/ClickHouse), or, for SQLite, by
+ * killing the child process the database runs in (see `sqlite-adapter.ts`).
+ * Not deployment-configurable, same as run-sql's `HARD_MAX_ROWS`: an
+ * unbounded query is a stability invariant, not a preference.
  */
 export const QUERY_TIMEOUT_MS = 30_000
 
 let queryTimeoutMs = QUERY_TIMEOUT_MS
 
-/** The per-query time limit in effect — `QUERY_TIMEOUT_MS` outside tests. Read when a connection opens (PostgreSQL/ClickHouse) or a query starts (MySQL). */
+/** The per-query time limit in effect — `QUERY_TIMEOUT_MS` outside tests. Read when a connection opens (PostgreSQL/ClickHouse) or a request starts (MySQL/SQLite). */
 export function getQueryTimeoutMs(): number {
   return queryTimeoutMs
 }

@@ -1,7 +1,8 @@
-import { DatabaseSync } from 'node:sqlite'
-import { CONNECTION_FAILED_CODE, DataAgentError, TABLE_NOT_FOUND_CODE } from '../errors.ts'
+import { fork, type ChildProcess } from 'node:child_process'
+import { extname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { CONNECTION_FAILED_CODE, DataAgentError } from '../errors.ts'
 import type {
-  ColumnInfo,
   ConnectionTestResult,
   DataSourceAdapter,
   DataSourceRecord,
@@ -9,16 +10,17 @@ import type {
   QueryResult,
   RunQueryOptions,
   SchemaResult,
-  TableInfo,
 } from '../types.ts'
-import { toJsonRow } from './adapter.ts'
+import { getQueryTimeoutMs, toJsonRow } from './adapter.ts'
+import type { RawQueryResult, SqliteEnvelope, SqliteRequest, SqliteResponse } from './sqlite-child.ts'
 
-const DEFAULT_MAX_TABLES = 200
-const DEFAULT_MAX_COLUMNS = 1000
+/** The child entry beside this module: `.ts` when run from `src/`, `.js` from the built `lib/`. */
+const CHILD_ENTRY = fileURLToPath(new URL(`./sqlite-child${extname(fileURLToPath(import.meta.url))}`, import.meta.url))
 
-/** Double-quote a SQLite identifier for interpolation (PRAGMA takes no bound parameters). */
-function quoteIdentifier(name: string): string {
-  return `"${name.replaceAll('"', '""')}"`
+interface Pending {
+  readonly resolve: (value: unknown) => void
+  readonly reject: (error: Error) => void
+  readonly timer: NodeJS.Timeout
 }
 
 /**
@@ -27,10 +29,22 @@ function quoteIdentifier(name: string): string {
  * on top of the AST gate (`sql/classify.ts`), and the only engine with no
  * native column/table comments (hence `comments.json` as an engine-agnostic
  * overlay).
+ *
+ * The database lives in a forked child process (`sqlite-child.ts`), not in
+ * this one: `node:sqlite` runs synchronously with no interrupt hook, so a
+ * runaway query (e.g. an unbounded recursive CTE) would otherwise block the
+ * whole harness's event loop. A worker thread isn't enough either —
+ * `Worker#terminate()` can't stop a thread stuck in native SQLite code. A
+ * request that outlives `getQueryTimeoutMs()` SIGKILLs the child instead;
+ * the next request forks a fresh one (until `close()`).
  */
 export class SqliteAdapter implements DataSourceAdapter {
-  private db: DatabaseSync | undefined
   private readonly record: DataSourceRecord
+  private child: ChildProcess | undefined
+  private opening: Promise<ChildProcess> | undefined
+  private readonly pending = new Map<number, Pending>()
+  private nextId = 0
+  private closed = false
 
   // TypeScript parameter-property shorthand is intentionally avoided
   // throughout this plugin: the real `dsh` CLI loads out-of-tree plugin
@@ -43,21 +57,13 @@ export class SqliteAdapter implements DataSourceAdapter {
   }
 
   async connect(): Promise<void> {
-    try {
-      this.db = new DatabaseSync(this.record.database, { readOnly: this.record.readOnly })
-    } catch (error) {
-      throw new DataAgentError(
-        `Failed to open SQLite database at "${this.record.database}": ${(error as Error).message}`,
-        CONNECTION_FAILED_CODE,
-        { cause: error },
-      )
-    }
+    await this.ensureChild()
   }
 
   async testConnection(): Promise<ConnectionTestResult> {
     const start = performance.now()
     try {
-      this.database().prepare('SELECT 1').get()
+      await this.request({ op: 'ping' })
       return { ok: true, latencyMs: Math.round(performance.now() - start) }
     } catch (error) {
       return { ok: false, error: { code: CONNECTION_FAILED_CODE, message: (error as Error).message } }
@@ -65,85 +71,114 @@ export class SqliteAdapter implements DataSourceAdapter {
   }
 
   async getSchema(options: GetSchemaOptions): Promise<SchemaResult> {
-    const db = this.database()
-    const maxTables = options.maxTables ?? DEFAULT_MAX_TABLES
-    const maxColumns = options.maxColumns ?? DEFAULT_MAX_COLUMNS
-
-    if (options.table !== undefined) {
-      const exists = db
-        .prepare('SELECT name FROM sqlite_master WHERE type = \'table\' AND name = ?')
-        .get(options.table)
-      if (exists === undefined) {
-        throw new DataAgentError(`Table "${options.table}" was not found`, TABLE_NOT_FOUND_CODE)
-      }
-      return {
-        sourceName: this.record.name,
-        engine: 'sqlite',
-        scope: 'table',
-        truncated: false,
-        tables: [this.describeTable(options.table, maxColumns)],
-      }
-    }
-
-    const rows = db
-      .prepare('SELECT name FROM sqlite_master WHERE type = \'table\' ORDER BY name')
-      .all() as { name: string }[]
-    const truncated = rows.length > maxTables
-    const tables: TableInfo[] = rows.slice(0, maxTables).map((row) => {
-      const columnCount = (db.prepare(`PRAGMA table_info(${quoteIdentifier(row.name)})`).all()).length
-      return { name: row.name, columnCount }
-    })
-
-    return { sourceName: this.record.name, engine: 'sqlite', scope: 'database', tables, truncated }
+    return await this.request({ op: 'getSchema', options }) as SchemaResult
   }
 
   async runQuery(sql: string, options: RunQueryOptions): Promise<QueryResult> {
-    const db = this.database()
-    const stmt = db.prepare(sql)
-    const params = (options.params ?? []) as (string | number | null)[]
-    const columns = stmt.columns().map(column => ({ name: column.name }))
-    if (columns.length === 0) {
-      stmt.run(...params)
-      return { columns, rows: [], rowCount: 0, truncated: false }
-    }
-
-    // Step one row past the cap, then stop — never materialize the whole result.
-    const rows: Record<string, unknown>[] = []
-    for (const row of stmt.iterate(...params)) {
-      rows.push(row as Record<string, unknown>)
-      if (rows.length > options.maxRows) break
-    }
-    const truncated = rows.length > options.maxRows
-    const limited = rows.slice(0, options.maxRows).map(toJsonRow)
-    return { columns, rows: limited, rowCount: limited.length, truncated }
+    const raw = await this.request({
+      op: 'runQuery',
+      sql,
+      params: [...(options.params ?? [])],
+      maxRows: options.maxRows,
+    }) as RawQueryResult
+    const truncated = raw.rows.length > options.maxRows
+    const limited = raw.rows.slice(0, options.maxRows).map(toJsonRow)
+    return { columns: raw.columns, rows: limited, rowCount: limited.length, truncated }
   }
 
   async close(): Promise<void> {
-    this.db?.close()
+    this.closed = true
+    const child = this.child
+    if (child === undefined) return
+    const exited = child.exitCode !== null || child.signalCode !== null
+      ? Promise.resolve()
+      : new Promise(resolve => child.once('exit', resolve))
+    // Idle: disconnecting lets the child close the database cleanly. Busy:
+    // it can't read the disconnect until its query finishes, so kill it.
+    // Re-ref'd so an awaited close() holds the event loop until the child is gone.
+    child.ref()
+    const idle = this.pending.size === 0 && child.connected
+    this.discard(child, new Error('The SQLite connection was closed'))
+    if (idle) child.disconnect()
+    else child.kill('SIGKILL')
+    await exited
   }
 
-  private database(): DatabaseSync {
-    if (this.db === undefined) {
-      throw new DataAgentError('SQLite adapter used before connect()', CONNECTION_FAILED_CODE)
+  private async request(request: SqliteRequest): Promise<unknown> {
+    return this.send(await this.ensureChild(), request)
+  }
+
+  private ensureChild(): Promise<ChildProcess> {
+    if (this.closed) return Promise.reject(new DataAgentError('SQLite adapter used after close()', CONNECTION_FAILED_CODE))
+    this.opening ??= this.spawn().catch((error: unknown) => {
+      this.opening = undefined
+      throw error
+    })
+    return this.opening
+  }
+
+  private async spawn(): Promise<ChildProcess> {
+    const child = fork(CHILD_ENTRY, [], {
+      serialization: 'advanced',
+      execArgv: ['--disable-warning=ExperimentalWarning'],
+      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    })
+    // Never hold the harness open on an idle child; a pending request's
+    // timeout timer keeps the event loop alive while one is in flight.
+    child.unref()
+    child.channel?.unref()
+    child.on('message', (response: SqliteResponse) => this.settle(response))
+    child.on('error', error => this.discard(child, error))
+    child.on('exit', () => this.discard(child, new Error('The SQLite process exited unexpectedly')))
+    this.child = child
+
+    try {
+      await this.send(child, { op: 'open', name: this.record.name, path: this.record.database, readOnly: this.record.readOnly })
+    } catch (error) {
+      child.kill('SIGKILL')
+      throw new DataAgentError(
+        `Failed to open SQLite database at "${this.record.database}": ${(error as Error).message}`,
+        CONNECTION_FAILED_CODE,
+        { cause: error },
+      )
     }
-    return this.db
+    return child
   }
 
-  private describeTable(table: string, maxColumns: number): TableInfo {
-    const db = this.database()
-    const pragmaRows = db.prepare(`PRAGMA table_info(${quoteIdentifier(table)})`).all() as {
-      name: string
-      type: string
-      notnull: number
-      pk: number
-    }[]
-    const truncated = pragmaRows.length > maxColumns
-    const columns: ColumnInfo[] = pragmaRows.slice(0, maxColumns).map(row => ({
-      name: row.name,
-      dataType: row.type,
-      nullable: row.notnull === 0,
-      isPrimaryKey: row.pk > 0,
-    }))
-    return { name: table, columnCount: pragmaRows.length, columns, truncated }
+  private send(child: ChildProcess, request: SqliteRequest): Promise<unknown> {
+    const id = ++this.nextId
+    const timeoutMs = getQueryTimeoutMs()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.discard(child, new Error(`SQLite query exceeded the ${timeoutMs} ms time limit and was stopped`))
+        child.kill('SIGKILL')
+      }, timeoutMs)
+      this.pending.set(id, { resolve, reject, timer })
+      const envelope: SqliteEnvelope = { id, request }
+      child.send(envelope, (error) => {
+        if (error !== null) this.discard(child, error)
+      })
+    })
+  }
+
+  private settle(response: SqliteResponse): void {
+    const pending = this.pending.get(response.id)
+    if (pending === undefined) return
+    this.pending.delete(response.id)
+    clearTimeout(pending.timer)
+    if (response.ok) pending.resolve(response.value)
+    else pending.reject(response.code !== undefined ? new DataAgentError(response.message, response.code) : new Error(response.message))
+  }
+
+  /** Forget a dead (or about-to-be-killed) child and fail everything still waiting on it. */
+  private discard(child: ChildProcess, error: Error): void {
+    if (this.child !== child) return
+    this.child = undefined
+    this.opening = undefined
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer)
+      pending.reject(error)
+    }
+    this.pending.clear()
   }
 }
