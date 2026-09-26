@@ -1,10 +1,19 @@
 import type { ConnectionTestResult, DataSourceRecord, SchemaResult } from '../../data-source/types.ts'
 
-const BASE = '/dsh-data-agent/api'
+/**
+ * Document-relative, not `/dsh-data-agent/api`: the harness shell sets
+ * `<base href="./">`, so this resolves under whatever mount served the page —
+ * the origin root, or a reverse-proxy subpath such as `/tools/dsh/` that
+ * forwards `/tools/dsh/...` as `/...`. An origin-absolute path would skip the
+ * mount and miss. The Host still registers the absolute path (see
+ * `settings-api/routes.ts`), which is what a request reaches once the proxy
+ * strips its prefix.
+ */
+export const API_ROUTE = 'dsh-data-agent/api'
 
 /** Every route is a JSON POST, reads included — the Host requires it (see `settings-api/routes.ts`). */
 async function call<T>(path: string, body: unknown = {}): Promise<T> {
-  const response = await fetch(`${BASE}/${path}`, {
+  const response = await fetch(`${API_ROUTE}/${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
