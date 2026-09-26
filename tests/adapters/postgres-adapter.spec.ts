@@ -1,5 +1,6 @@
+import { createServer, type AddressInfo } from 'node:net'
 import { Context } from '@deepseek-ai/cordis'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { PostgresAdapter } from '../../src/data-source/adapters/postgres-adapter.ts'
 import type { DataSourceRecord } from '../../src/data-source/types.ts'
 
@@ -94,5 +95,67 @@ describe('PostgresAdapter.runQuery', () => {
     expect(log).toEqual(['read 6', 'release'])
     expect(result.truncated).toBe(false)
     expect(result.rowCount).toBe(3)
+  })
+})
+
+/**
+ * A fake server that answers the startup message with
+ * AuthenticationCleartextPassword and resolves with whatever password the
+ * real `pg` driver sends back.
+ */
+function captureCleartextPassword(): Promise<{ port: number, password: Promise<string> }> {
+  return new Promise((resolveListening) => {
+    let resolvePassword!: (password: string) => void
+    const password = new Promise<string>((resolve) => { resolvePassword = resolve })
+    const server = createServer((socket) => {
+      let startup = true
+      socket.on('data', (buffer: Buffer) => {
+        if (startup) {
+          startup = false
+          const request = Buffer.alloc(9)
+          request.write('R')
+          request.writeInt32BE(8, 1)
+          request.writeInt32BE(3, 5)
+          socket.write(request)
+        } else if (buffer[0] === 0x70) {
+          resolvePassword(buffer.subarray(5, buffer.length - 1).toString())
+          socket.destroy()
+          server.close()
+        }
+      })
+    })
+    server.listen(0, '127.0.0.1', () => {
+      resolveListening({ port: (server.address() as AddressInfo).port, password })
+    })
+  })
+}
+
+describe('PostgresAdapter.connect credentials', () => {
+  const saved = { PGPASSWORD: process.env.PGPASSWORD, DSH_DA_TEST_PG_PASSWORD: process.env.DSH_DA_TEST_PG_PASSWORD }
+
+  afterEach(() => {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  })
+
+  it('never falls back to the host\'s PGPASSWORD for a source with no passwordEnv', async () => {
+    process.env.PGPASSWORD = 'ambient-secret'
+    const { port, password } = await captureCleartextPassword()
+    const adapter = new PostgresAdapter(new Context(), { ...record, host: '127.0.0.1', port, user: 'u' })
+    await expect(adapter.connect()).rejects.toThrow()
+    expect(await password).toBe('')
+  })
+
+  it('sends the source\'s own passwordEnv value', async () => {
+    process.env.PGPASSWORD = 'ambient-secret'
+    process.env.DSH_DA_TEST_PG_PASSWORD = 'own-secret'
+    const { port, password } = await captureCleartextPassword()
+    const adapter = new PostgresAdapter(new Context(), {
+      ...record, host: '127.0.0.1', port, user: 'u', passwordEnv: 'DSH_DA_TEST_PG_PASSWORD',
+    })
+    await expect(adapter.connect()).rejects.toThrow()
+    expect(await password).toBe('own-secret')
   })
 })

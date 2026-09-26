@@ -60,6 +60,12 @@ export class PostgresAdapter implements DataSourceAdapter {
   async connect(): Promise<void> {
     const password = await resolveSecret(this.ctx, this.record.passwordEnv)
     const attempts = resolvePostgresSslAttempts(this.record, path => readFileSync(path, 'utf8'))
+    // Always a function, never `undefined`: given no password, `pg` falls back
+    // to the host's `PGPASSWORD`, then `~/.pgpass`, and sends that to whatever
+    // server asks — a chat-added source (which can't carry a `passwordEnv`)
+    // pointed at an attacker's host would receive it. A password function
+    // skips both fallbacks.
+    const resolvePassword = async (): Promise<string> => password ?? ''
 
     let lastError: unknown
     for (const ssl of attempts) {
@@ -67,7 +73,7 @@ export class PostgresAdapter implements DataSourceAdapter {
         host: this.record.host,
         port: this.record.port,
         user: this.record.user,
-        password,
+        password: resolvePassword,
         database: this.record.database,
         ssl,
         max: 3,
