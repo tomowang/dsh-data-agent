@@ -1,10 +1,21 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { getSourceComments, setComment } from '../data-source/persistence/comments-store.ts'
-import { DataAgentError } from '../data-source/errors.ts'
+import { DataAgentError, SOURCE_NOT_FOUND_CODE } from '../data-source/errors.ts'
 import { mergeSchemaComments } from '../data-source/schema-comments.ts'
+import { ENGINES, SSL_MODES } from '../data-source/types.ts'
+import {
+  optionalBoolean,
+  optionalEnum,
+  optionalNullableBoolean,
+  optionalNullableEnum,
+  optionalNullableNumber,
+  optionalNullableString,
+  optionalNumber,
+  optionalString,
+  requireEnum,
+  requireString,
+} from '../tools/tool-types.ts'
 import { SETTINGS_API_PATH } from './protocol.ts'
-
-const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 
 async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
   const raw = await request.text()
@@ -14,27 +25,6 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
     throw new Error('request body must be a JSON object')
   }
   return value as Record<string, unknown>
-}
-
-/** For an edit-source field: `null` in the body means "clear", anything else non-string means "leave as-is". */
-function nullableString(value: unknown): string | null | undefined {
-  if (typeof value === 'string') return value
-  return value === null ? null : undefined
-}
-
-function nullableNumber(value: unknown): number | null | undefined {
-  if (typeof value === 'number') return value
-  return value === null ? null : undefined
-}
-
-function nullableBoolean(value: unknown): boolean | null | undefined {
-  if (typeof value === 'boolean') return value
-  return value === null ? null : undefined
-}
-
-function nullableEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null | undefined {
-  if ((allowed as readonly unknown[]).includes(value)) return value as T
-  return value === null ? null : undefined
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -89,54 +79,59 @@ function jsonRoute(
 export function applySettingsApiRoutes(ctx: Context): void {
   jsonRoute(ctx, 'list-sources', async () => ({ sources: await ctx.dataAgent.list() }))
 
+  // Field types are checked strictly here, with the chat tools' own helpers:
+  // a wrong-typed field is a 400, never silently dropped. What a valid record
+  // is (a real engine, a port in range, ...) is the registry's to check, for
+  // chat and Settings alike.
   jsonRoute(ctx, 'add-source', async body => ctx.dataAgent.addSource({
-    name: String(body.name ?? ''),
-    engine: body.engine as 'mysql' | 'postgres' | 'sqlite' | 'clickhouse',
-    database: String(body.database ?? ''),
-    host: typeof body.host === 'string' ? body.host : undefined,
-    port: typeof body.port === 'number' ? body.port : undefined,
-    user: typeof body.user === 'string' ? body.user : undefined,
-    passwordEnv: typeof body.passwordEnv === 'string' ? body.passwordEnv : undefined,
-    ssl: typeof body.ssl === 'boolean' ? body.ssl : undefined,
-    sslmode: (SSL_MODES as readonly unknown[]).includes(body.sslmode) ? body.sslmode as typeof SSL_MODES[number] : undefined,
-    sslrootcert: typeof body.sslrootcert === 'string' ? body.sslrootcert : undefined,
-    readOnly: typeof body.readOnly === 'boolean' ? body.readOnly : true,
-    description: typeof body.description === 'string' ? body.description : undefined,
+    name: requireString(body, 'name', 'add-source'),
+    engine: requireEnum(body, 'engine', ENGINES, 'add-source'),
+    database: requireString(body, 'database', 'add-source'),
+    host: optionalString(body, 'host', 'add-source'),
+    port: optionalNumber(body, 'port', 'add-source'),
+    user: optionalString(body, 'user', 'add-source'),
+    passwordEnv: optionalString(body, 'passwordEnv', 'add-source'),
+    ssl: optionalBoolean(body, 'ssl', 'add-source'),
+    sslmode: optionalEnum(body, 'sslmode', SSL_MODES, 'add-source'),
+    sslrootcert: optionalString(body, 'sslrootcert', 'add-source'),
+    readOnly: optionalBoolean(body, 'readOnly', 'add-source') ?? true,
+    description: optionalString(body, 'description', 'add-source'),
   }))
 
-  jsonRoute(ctx, 'edit-source', async body => ctx.dataAgent.editSource(String(body.name ?? ''), {
-    host: nullableString(body.host),
-    port: nullableNumber(body.port),
-    database: typeof body.database === 'string' ? body.database : undefined,
-    user: nullableString(body.user),
-    passwordEnv: nullableString(body.passwordEnv),
-    ssl: nullableBoolean(body.ssl),
-    sslmode: nullableEnum(body.sslmode, SSL_MODES),
-    sslrootcert: nullableString(body.sslrootcert),
-    readOnly: typeof body.readOnly === 'boolean' ? body.readOnly : undefined,
-    description: nullableString(body.description),
+  jsonRoute(ctx, 'edit-source', async body => ctx.dataAgent.editSource(requireString(body, 'name', 'edit-source'), {
+    host: optionalNullableString(body, 'host', 'edit-source'),
+    port: optionalNullableNumber(body, 'port', 'edit-source'),
+    database: optionalString(body, 'database', 'edit-source'),
+    user: optionalNullableString(body, 'user', 'edit-source'),
+    passwordEnv: optionalNullableString(body, 'passwordEnv', 'edit-source'),
+    ssl: optionalNullableBoolean(body, 'ssl', 'edit-source'),
+    sslmode: optionalNullableEnum(body, 'sslmode', SSL_MODES, 'edit-source'),
+    sslrootcert: optionalNullableString(body, 'sslrootcert', 'edit-source'),
+    readOnly: optionalBoolean(body, 'readOnly', 'edit-source'),
+    description: optionalNullableString(body, 'description', 'edit-source'),
   }))
 
-  jsonRoute(ctx, 'remove-source', async body => ctx.dataAgent.removeSource(String(body.name ?? '')))
+  jsonRoute(ctx, 'remove-source', async body => ctx.dataAgent.removeSource(requireString(body, 'name', 'remove-source')))
 
   jsonRoute(ctx, 'test-connection', async (body) => {
-    const adapter = await ctx.dataAgent.getAdapter(String(body.name ?? ''))
+    const adapter = await ctx.dataAgent.getAdapter(requireString(body, 'name', 'test-connection'))
     return adapter.testConnection()
   })
 
   // A strict boolean, never a coercion: `Boolean(undefined)` would silently
   // turn a malformed request into "make this source read-write".
   jsonRoute(ctx, 'set-read-only', async (body) => {
+    const name = requireString(body, 'name', 'set-read-only')
     if (typeof body.readOnly !== 'boolean') throw new Error('"readOnly" is required and must be a boolean')
-    return ctx.dataAgent.setReadOnly(String(body.name ?? ''), body.readOnly)
+    return ctx.dataAgent.setReadOnly(name, body.readOnly)
   })
 
   jsonRoute(ctx, 'get-schema', async (body) => {
-    const sourceName = String(body.sourceName ?? '')
+    const sourceName = requireString(body, 'sourceName', 'get-schema')
     const adapter = await ctx.dataAgent.getAdapter(sourceName)
     const schema = await adapter.getSchema({
-      table: typeof body.table === 'string' ? body.table : undefined,
-      schemaName: typeof body.schemaName === 'string' ? body.schemaName : undefined,
+      table: optionalString(body, 'table', 'get-schema'),
+      schemaName: optionalString(body, 'schemaName', 'get-schema'),
     })
     const comments = await getSourceComments(sourceName)
     return mergeSchemaComments(schema, comments)
@@ -154,10 +149,14 @@ export function applySettingsApiRoutes(ctx: Context): void {
   }))
 
   jsonRoute(ctx, 'set-comment', async (body) => {
-    const sourceName = String(body.sourceName ?? '')
-    const table = String(body.table ?? '')
-    const column = typeof body.column === 'string' ? body.column : undefined
-    const comment = typeof body.comment === 'string' && body.comment.length > 0 ? body.comment : null
+    const sourceName = requireString(body, 'sourceName', 'set-comment')
+    const table = requireString(body, 'table', 'set-comment')
+    const column = optionalString(body, 'column', 'set-comment')
+    const comment = optionalString(body, 'comment', 'set-comment') || null
+    // Same check as da_set_comment: never persist comments for a source that doesn't exist.
+    if (await ctx.dataAgent.get(sourceName) === undefined) {
+      throw new DataAgentError(`No data source named "${sourceName}"`, SOURCE_NOT_FOUND_CODE)
+    }
     await setComment(sourceName, table, column, comment)
     return { sourceName, table, column, comment }
   })

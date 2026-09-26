@@ -166,6 +166,29 @@ describe('DataSourceRegistry', () => {
     await dispose()
   })
 
+  it('rejects an invalid record on add and edit, for chat and Settings alike, leaving sources.json untouched', async () => {
+    const { registry, dispose } = await createRegistry()
+    await expect(registry.addSource({ name: 'x', engine: 'mysql', database: 'app', port: 0, readOnly: true }))
+      .rejects.toThrow(/"port" must be an integer from 1 to 65535/)
+    await expect(registry.addSource({ name: 'x', engine: 'oracle' as 'mysql', database: 'app', readOnly: true }))
+      .rejects.toThrow(/"engine" must be one of/)
+    await expect(registry.addSource({ name: ' ', engine: 'mysql', database: 'app', readOnly: true }))
+      .rejects.toThrow(/"name"/)
+    expect(await registry.list()).toEqual([])
+
+    await registry.addSource({ name: 'x', engine: 'mysql', database: 'app', port: 3306, readOnly: true })
+    await expect(registry.editSource('x', { port: 65536 })).rejects.toThrow(/"port"/)
+    await expect(registry.editSource('x', { database: '' })).rejects.toThrow(/"database"/)
+    expect(await registry.get('x')).toMatchObject({ port: 3306, database: 'app' })
+
+    // A fresh registry reads sources.json itself: the rejected edits never reached it.
+    const second = await createRegistry()
+    expect(await second.registry.get('x')).toMatchObject({ port: 3306, database: 'app' })
+    await second.dispose()
+
+    await dispose()
+  })
+
   it('rejects operations after disposal', async () => {
     const { registry, dispose } = await createRegistry()
     await registry.addSource({ name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })

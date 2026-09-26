@@ -9,7 +9,7 @@ import {
   REGISTRY_DISPOSED_CODE,
   SOURCE_NOT_FOUND_CODE,
 } from './errors.ts'
-import type { DataSourceAdapter, DataSourceRecord } from './types.ts'
+import { ENGINES, SSL_MODES, type DataSourceAdapter, type DataSourceRecord } from './types.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -72,6 +72,34 @@ function applyNullable<T>(existing: T | undefined, incoming: T | null | undefine
   if (incoming === undefined) return existing
   if (incoming === null) return undefined
   return incoming
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+/**
+ * Checks a record as it's about to be saved — the one validation both chat
+ * and the Settings API go through, so a malformed request fails here with a
+ * clear message instead of saving a record that only fails later, at
+ * connect time. Throws a plain (input-validation) `Error`, like
+ * `assertAllowedPasswordEnv`.
+ */
+function assertValidRecord(record: DataSourceRecord): void {
+  if (!isNonEmptyString(record.name)) throw new Error('"name" must be a non-empty string')
+  if (!(ENGINES as readonly unknown[]).includes(record.engine)) {
+    throw new Error(`"engine" must be one of ${ENGINES.join(', ')}`)
+  }
+  if (!isNonEmptyString(record.database)) {
+    throw new Error(`"database" must be a non-empty string (${record.engine === 'sqlite' ? 'the file path' : 'the database name'})`)
+  }
+  if (typeof record.readOnly !== 'boolean') throw new Error('"readOnly" must be a boolean')
+  if (record.port !== undefined && !(Number.isInteger(record.port) && record.port >= 1 && record.port <= 65535)) {
+    throw new Error('"port" must be an integer from 1 to 65535')
+  }
+  if (record.sslmode !== undefined && !(SSL_MODES as readonly unknown[]).includes(record.sslmode)) {
+    throw new Error(`"sslmode" must be one of ${SSL_MODES.join(', ')}`)
+  }
 }
 
 function applyEdit(existing: DataSourceRecord, input: EditSourceInput): DataSourceRecord {
@@ -138,6 +166,7 @@ export class DataSourceRegistry extends Service {
     await this.guardReady()
     if (input.passwordEnv !== undefined) assertAllowedPasswordEnv(input.passwordEnv)
     const record: DataSourceRecord = { ...omitUndefined(input), createdAt: new Date().toISOString() }
+    assertValidRecord(record)
 
     const next = await mutateSources((current) => {
       if (current.some(existing => existing.name === input.name)) {
@@ -217,6 +246,7 @@ export class DataSourceRegistry extends Service {
       const existing = current[index]
       if (existing === undefined) throw new DataAgentError(`No data source named "${name}"`, SOURCE_NOT_FOUND_CODE)
       const updated = applyEdit(existing, input)
+      assertValidRecord(updated)
       const updatedList = [...current]
       updatedList[index] = updated
       return { next: updatedList, result: updated }

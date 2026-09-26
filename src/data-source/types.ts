@@ -1,5 +1,10 @@
 /** The four supported database engines. */
-export type Engine = 'mysql' | 'postgres' | 'sqlite' | 'clickhouse'
+export const ENGINES = ['mysql', 'postgres', 'sqlite', 'clickhouse'] as const
+export type Engine = (typeof ENGINES)[number]
+
+/** PostgreSQL `sslmode` values, mirroring libpq's (see `DataSourceRecord.sslmode`). */
+export const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
+export type SslMode = (typeof SSL_MODES)[number]
 
 /**
  * A registered connection, as persisted to `sources.json`. Never carries a
@@ -32,7 +37,7 @@ export interface DataSourceRecord {
    * hostname) — pair either with `sslrootcert` unless the certificate
    * already chains to a CA Node trusts by default.
    */
-  readonly sslmode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
+  readonly sslmode?: SslMode
   /** PostgreSQL only. Path to a PEM-encoded CA certificate, read at connect time. */
   readonly sslrootcert?: string
   readonly readOnly: boolean

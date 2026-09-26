@@ -195,4 +195,66 @@ describe('settings-api routes', () => {
     expect((await call(routes, 'list-sources', [1, 2])).status).toBe(400)
     await dispose()
   })
+
+  it('add-source rejects malformed input with a 400 and saves nothing', async () => {
+    const { routes, dispose } = await createTestContext()
+    const valid = { name: 'sample', engine: 'mysql', host: 'db.internal', database: 'app', readOnly: true }
+
+    for (const [patch, error] of [
+      [{ engine: 'oracle' }, /"engine" must be one of/],
+      [{ engine: undefined }, /"engine" must be one of/],
+      [{ name: '' }, /"name"/],
+      [{ name: '   ' }, /"name"/],
+      [{ database: '' }, /"database"/],
+      [{ port: '5432' }, /"port" must be a finite number/],
+      [{ port: 0 }, /"port" must be an integer from 1 to 65535/],
+      [{ port: 70000 }, /"port" must be an integer from 1 to 65535/],
+      [{ port: 3306.5 }, /"port" must be an integer from 1 to 65535/],
+      [{ sslmode: 'bogus' }, /"sslmode" must be one of/],
+      [{ ssl: 'true' }, /"ssl" must be a boolean/],
+      [{ readOnly: 'false' }, /"readOnly" must be a boolean/],
+    ] as const) {
+      const result = await call(routes, 'add-source', { ...valid, ...patch })
+      expect(result.status, JSON.stringify(patch)).toBe(400)
+      expect((result.body as { error: string }).error).toMatch(error)
+    }
+
+    expect((await call(routes, 'list-sources')).body).toEqual({ sources: [] })
+    await dispose()
+  })
+
+  it('edit-source rejects an edit that would leave an invalid record, keeping the saved one', async () => {
+    const { routes, dispose } = await createTestContext()
+    await call(routes, 'add-source', { name: 'sample', engine: 'mysql', host: 'db.internal', port: 3306, database: 'app', readOnly: true })
+
+    for (const body of [{ port: 0 }, { port: 'x' }, { database: ' ' }, { host: 42 }, { sslmode: 'bogus' }]) {
+      expect((await call(routes, 'edit-source', { name: 'sample', ...body })).status, JSON.stringify(body)).toBe(400)
+    }
+    const list = await call(routes, 'list-sources')
+    const [saved] = (list.body as { sources: { port: number, database: string, host: string }[] }).sources
+    expect(saved).toMatchObject({ port: 3306, database: 'app', host: 'db.internal' })
+    await dispose()
+  })
+
+  it('rejects a missing name instead of acting on the empty-named source', async () => {
+    const { routes, dispose } = await createTestContext()
+    for (const route of ['remove-source', 'test-connection', 'set-read-only', 'edit-source']) {
+      expect((await call(routes, route, { readOnly: true })).status, route).toBe(400)
+    }
+    expect((await call(routes, 'get-schema', {})).status).toBe(400)
+    await dispose()
+  })
+
+  it('set-comment requires an existing source and a table, and saves nothing otherwise', async () => {
+    const { routes, dispose } = await createTestContext()
+    expect((await call(routes, 'set-comment', { sourceName: 'missing', table: 'orders', comment: 'x' })).status).toBe(404)
+
+    await call(routes, 'add-source', { name: 'sample', engine: 'sqlite', database: dbFile, readOnly: true })
+    expect((await call(routes, 'set-comment', { sourceName: 'sample', comment: 'x' })).status).toBe(400)
+    expect((await call(routes, 'set-comment', { sourceName: 'sample', table: 'orders', comment: 7 })).status).toBe(400)
+
+    const schema = await call(routes, 'get-schema', { sourceName: 'sample' })
+    expect((schema.body as { tables: { comment?: string }[] }).tables[0]!.comment).toBeUndefined()
+    await dispose()
+  })
 })
