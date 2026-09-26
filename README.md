@@ -59,6 +59,18 @@ Search `tomowang/dsh-data-agent`, and click **Install** on the result.
 
 ![Installing dsh-data-agent from the dsh-market](assets/dshmarket.png)
 
+## Upgrading from 0.3 to 0.4
+
+0.4 requires dsh 0.1.7-rc.2 or later, and tightens what chat can do to your data sources. Three changes need action or will change your workflow:
+
+- **Password variables must start with `DSH_DA_`.** A source whose `passwordEnv` names any other variable fails to connect with an error saying so. Export the password under a new name (e.g. `PROD_DB_PASSWORD` → `DSH_DA_PROD_DB_PASSWORD`), then update the source's password env var in Settings → Data Sources.
+- **Chat can't add SQLite sources until you approve a directory.** Add the source in Settings, or list the directories chat may use in the plugin's `sqliteChatDirs` config (see [Features](#features)).
+- **Only Settings can make a source read-write.** Chat can still make a source read-only, but turning read-only off from chat is now refused. Use the checkbox in Settings → Data Sources.
+
+Also, from chat, credentials can no longer be attached, and a source that has one can't be pointed at a different host, port, or user. Do both in Settings.
+
+The Settings → Data Sources panel now uses dsh's own authenticated API, so it needs the browser to be signed in to dsh. If the panel reports "Not signed in to dsh", reopen dsh from the URL it printed at startup.
+
 ## Develop
 
 ```sh

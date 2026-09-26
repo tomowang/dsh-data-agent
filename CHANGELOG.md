@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-09-26
+
+### Bug Fixes
+
+- Enforce read-only at the database and cap query rows while reading
+- Restrict passwordEnv to DSH_DA_* and keep credentials out of chat tools
+- Restrict chat-set SQLite paths to approved sqliteChatDirs
+- Only allow chat tools to turn read-only on, never off
+- Correct MySQL write results, ClickHouse 64-bit precision, and JSON cells
+- Check Host against DNS rebinding and require JSON POST on settings routes
+- Silence ClickHouse client logging of deliberate aborts
+- Unregister web routes when the plugin unloads
+- Use document-relative URLs for the settings API
+- Move the settings API onto the harness's authenticated /api channel
+
+### CI/Build
+
+- Run adapter integration tests against real databases
+
+### Chores
+
+- Declare the dsh 0.1.7-rc.2 runtime requirement as a peer range
+
+### Documentation
+
+- Add demo video, screenshot, and architecture diagram to README
+- Add npm version, CI status, and license badges to README
+- Update demo video link in README.md
+- Add dsh-market install instructions to README
+- Point the CI badge at the ci workflow and add a release badge
+
 ## [0.3.0] - 2026-09-17
 
 ### Bug Fixes
