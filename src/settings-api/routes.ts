@@ -4,6 +4,7 @@ import { getSourceComments, setComment } from '../data-source/persistence/commen
 import { DataAgentError } from '../data-source/errors.ts'
 import { mergeSchemaComments } from '../data-source/schema-comments.ts'
 import { isTrustedRequest } from './trust.ts'
+import { registerWebRoute } from './web-route.ts'
 
 const ROUTE_PREFIX = '/dsh-data-agent/api'
 const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
@@ -97,13 +98,13 @@ function jsonRoute(
  * mount list (`packages/api/remotes`) that an out-of-tree plugin cannot do.
  */
 export function applySettingsApiRoutes(ctx: Context): void {
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/list-sources`,
     handler: jsonRoute(ctx, async () => ({ sources: await ctx.dataAgent.list() })),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/add-source`,
     handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.addSource({
@@ -122,7 +123,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     })),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/edit-source`,
     handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.editSource(String(body.name ?? ''), {
@@ -139,13 +140,13 @@ export function applySettingsApiRoutes(ctx: Context): void {
     })),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/remove-source`,
     handler: jsonRoute(ctx, async (_req, body) => ctx.dataAgent.removeSource(String(body.name ?? ''))),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/test-connection`,
     handler: jsonRoute(ctx, async (_req, body) => {
@@ -154,7 +155,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     }),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/set-read-only`,
     // A strict boolean, never a coercion: `Boolean(undefined)` would silently
@@ -165,7 +166,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     }),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/get-schema`,
     handler: jsonRoute(ctx, async (_req, body) => {
@@ -180,7 +181,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     }),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/list-tools`,
     // `ctx.tools.schemas()` is the whole host's visible tool registry, not just
@@ -195,7 +196,7 @@ export function applySettingsApiRoutes(ctx: Context): void {
     })),
   })
 
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'exact',
     path: `${ROUTE_PREFIX}/set-comment`,
     handler: jsonRoute(ctx, async (_req, body) => {

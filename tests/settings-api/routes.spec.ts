@@ -63,7 +63,9 @@ async function createTestContext(): Promise<{ ctx: Context, routes: Map<string, 
   ctx.webServer = {
     host: '127.0.0.1',
     port: 3080,
+    // Mirrors the real webserver: a duplicate path throws, and nothing is removed until the disposer runs.
     register: (route: { path: string, handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void> }) => {
+      if (routes.has(route.path)) throw new Error(`webserver: duplicate exact route "${route.path}"`)
       routes.set(route.path, route.handler)
       return () => routes.delete(route.path)
     },
@@ -74,6 +76,22 @@ async function createTestContext(): Promise<{ ctx: Context, routes: Map<string, 
 }
 
 describe('settings-api routes', () => {
+  it('removes its routes when its plugin unloads, so a reload (e.g. a config change) re-registers cleanly', async () => {
+    const { ctx, routes, dispose } = await createTestContext()
+    const count = routes.size
+    routes.clear()
+
+    const first = await ctx.plugin({ name: 'settings-api-first', apply: applySettingsApiRoutes })
+    expect(routes.size).toBe(count)
+    await first.dispose()
+    expect(routes.size).toBe(0)
+
+    const second = await ctx.plugin({ name: 'settings-api-second', apply: applySettingsApiRoutes })
+    expect(routes.size).toBe(count)
+    await second.dispose()
+    await dispose()
+  })
+
   it('rejects a request from an untrusted origin with 403', async () => {
     const { routes, dispose } = await createTestContext()
     const { res, result } = fakeRes()

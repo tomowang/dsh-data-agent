@@ -1,5 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { isTrustedRequest } from '../settings-api/trust.ts'
+import { registerWebRoute } from '../settings-api/web-route.ts'
 
 /**
  * No trailing slash: `ctx.webServer`'s own `kind: 'prefix'` matching is
@@ -45,7 +46,7 @@ export function chartImageUrl(ctx: Context, id: string): string {
  * that same `ctx` has no `chartImageStore` in its own inject list either.
  */
 export function applyChartImageRoutes(ctx: Context): void {
-  ctx.webServer.register({
+  registerWebRoute(ctx, {
     kind: 'prefix',
     path: ROUTE_PATH,
     handler(req, res) {

@@ -87,6 +87,26 @@ describe('chart-image routes', () => {
     await dispose()
   })
 
+  it('removes its route when its plugin unloads', async () => {
+    const ctx = new Context()
+    const routes = new Set<string>()
+    ctx.webServer = {
+      host: '127.0.0.1',
+      port: 3080,
+      register: (route: { path: string }) => {
+        if (routes.has(route.path)) throw new Error(`webserver: duplicate prefix route "${route.path}"`)
+        routes.add(route.path)
+        return () => routes.delete(route.path)
+      },
+    }
+    for (let reload = 0; reload < 2; reload++) {
+      const fiber = await ctx.plugin({ name: `chart-image-${reload}`, apply: applyChartImageRoutes })
+      expect(routes.size).toBe(1)
+      await fiber.dispose()
+      expect(routes.size).toBe(0)
+    }
+  })
+
   it('rejects a DNS-rebinding request (foreign Host header) with 403', async () => {
     const { ctx, handler, dispose } = await createTestContext()
     const id = ctx.chartImageStore.put(Buffer.from('png-bytes'))
