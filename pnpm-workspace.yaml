@@ -7,6 +7,9 @@ allowBuilds:
   esbuild: true
   skia-canvas: true
 
+minimumReleaseAgeExclude:
+  - '@deepseek-ai/dsh-client-ui-primitives@0.2.1-rc.2'
+
 # package.json declares an optional `@deepseek-ai/dsh` peer purely as a
 # compatibility range the dsh runtime checks when it loads the plugin;
 # nothing imports it. Keep pnpm from installing the whole dsh CLI into this

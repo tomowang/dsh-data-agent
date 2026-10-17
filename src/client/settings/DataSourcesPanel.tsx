@@ -1,12 +1,12 @@
 import * as React from 'react'
 import {
-  IconChevronDownOutline14,
-  IconDatabaseOutline16,
-  IconEditOutline16,
-  IconPlusOutline16,
-  IconQuestionOutline14,
-  IconRefreshOutline16,
-  IconTrashOutline16,
+  IconChevronDownOutlineRegular,
+  IconDatabaseOutlineRegular,
+  IconEditOutlineRegular,
+  IconPlusOutlineRegular,
+  IconQuestionOutlineRegular,
+  IconRefreshOutlineRegular,
+  IconTrashOutlineRegular,
   Input,
   Menu,
   type MenuItem,
@@ -44,7 +44,7 @@ function FieldLabel({ field, t }: { field: FieldSpec, t: T }): React.ReactElemen
       {label}
       <Tooltip label={t(field.tooltipKey)} side="top" maxWidth={240}>
         <span className="dsh-da-fieldTooltipIcon" tabIndex={0}>
-          <IconQuestionOutline14 />
+          <IconQuestionOutlineRegular />
         </span>
       </Tooltip>
     </span>
@@ -110,7 +110,7 @@ function EngineSelect({ value, onChange, t }: { value: Engine, onChange: (engine
         <button type="button" className="dsh-da-engineTrigger" onClick={() => setOpen(o => !o)}>
           <EngineIcon engine={value} size={16} />
           <span className="dsh-da-engineTriggerLabel">{t(ENGINE_FORM_SCHEMAS[value].labelKey)}</span>
-          <IconChevronDownOutline14 className="dsh-da-engineTriggerChevron" />
+          <IconChevronDownOutlineRegular className="dsh-da-engineTriggerChevron" />
         </button>
       )}
     />
@@ -130,7 +130,7 @@ function AddSourceForm({ onAdded, t }: { onAdded: () => void, t: T }): React.Rea
   if (!open) {
     return (
       <button type="button" className="dsh-da-addButton" onClick={() => setOpen(true)}>
-        <IconPlusOutline16 size={14} />
+        <IconPlusOutlineRegular size={14} />
         {t('addDataSource')}
       </button>
     )
@@ -395,11 +395,11 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
         </span>
         <span className="dsh-da-rowActions">
           <button type="button" className="dsh-da-secondaryButton" onClick={() => setEditing(true)}>
-            <IconEditOutline16 size={14} />
+            <IconEditOutlineRegular size={14} />
             {t('edit')}
           </button>
           <button type="button" className="dsh-da-dangerButton" onClick={() => void api.removeSource(source.name).then(onChanged)}>
-            <IconTrashOutline16 size={14} />
+            <IconTrashOutlineRegular size={14} />
             {t('remove')}
           </button>
         </span>
@@ -428,11 +428,11 @@ function SourceRow({ source, onChanged, t }: { source: DataSourceRecord, onChang
               </label>
               <span className="dsh-da-rowActions">
                 <button type="button" className="dsh-da-secondaryButton" disabled={testing} onClick={() => void test()}>
-                  <IconRefreshOutline16 size={14} />
+                  <IconRefreshOutlineRegular size={14} />
                   {testing ? t('testing') : t('test')}
                 </button>
                 <button type="button" className="dsh-da-secondaryButton" disabled={schemaLoading} onClick={() => void toggleSchema()}>
-                  <IconDatabaseOutline16 size={14} />
+                  <IconDatabaseOutlineRegular size={14} />
                   {schemaLoading ? t('loading') : schemaOpen ? t('hideSchema') : t('viewSchema')}
                 </button>
               </span>

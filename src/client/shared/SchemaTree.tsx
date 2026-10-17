@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { DisclosureRow, IconCheckOutline16, IconCloseOutline16, IconDatabaseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DisclosureRow, IconCheckOutlineRegular, IconCloseOutlineRegular, IconDatabaseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SchemaResult, TableInfo } from '../../data-source/types.ts'
 import { ensureDshStyles } from './dsh-styles.ts'
 
@@ -64,7 +64,7 @@ function TableSection(
 
   return (
     <DisclosureRow
-      icon={<IconDatabaseOutline16 />}
+      icon={<IconDatabaseOutlineRegular />}
       title={table.name}
       open={open}
       expandable
@@ -163,10 +163,10 @@ function EditableComment({ table, column, text, onSave }: EditableCommentProps):
         autoFocus
       />
       <button type="button" className="dsh-da-iconButton" disabled={saving} aria-label="Save comment" onClick={() => void save()}>
-        <IconCheckOutline16 size={14} />
+        <IconCheckOutlineRegular size={14} />
       </button>
       <button type="button" className="dsh-da-iconButton" disabled={saving} aria-label="Cancel" onClick={() => setEditing(false)}>
-        <IconCloseOutline16 size={14} />
+        <IconCloseOutlineRegular size={14} />
       </button>
     </span>
   )
