@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] - 2026-10-17
+
+### Bug Fixes
+
+- Sync with dsh 0.2.1-rc.2 web listener changes
+
 ## [0.4.1] - 2026-09-26
 
 ### Bug Fixes

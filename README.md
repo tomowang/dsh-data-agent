@@ -61,6 +61,12 @@ Search `tomowang/dsh-data-agent`, and click **Install** on the result.
 
 ![Installing dsh-data-agent from the dsh-market](assets/dshmarket.png)
 
+## Upgrading from 0.4 to 0.5
+
+0.5 requires dsh 0.2.1-rc.2 or later; older dsh refuses to load it. Upgrade dsh first (`npm install -g @deepseek-ai/dsh@0.2.1-rc.2`), then the plugin.
+
+dsh 0.2.1 no longer binds the web listener to `0.0.0.0`: it listens on one concrete address, optionally over HTTPS. `da_render_chart` image links now use that listener's own origin (`http(s)://<bind address>:<port>`, IPv6 bracketed), so they keep working on IPv6 and HTTPS listeners. No action needed.
+
 ## Upgrading from 0.3 to 0.4
 
 0.4 requires dsh 0.1.7-rc.2 or later, and tightens what chat can do to your data sources. Three changes need action or will change your workflow:
