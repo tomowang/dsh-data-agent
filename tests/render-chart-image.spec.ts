@@ -8,9 +8,7 @@ import type { ToolDefinition } from '../src/tools/tool-types.ts'
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47])
 
 interface FakeWebServer {
-  host: '127.0.0.1' | '0.0.0.0'
-  port: number
-  register: () => () => void
+  getOrigin: () => string
 }
 
 /**
@@ -52,7 +50,7 @@ async function createTestContext(webServer?: FakeWebServer): Promise<{ ctx: Cont
 
 describe('da_render_chart image output', () => {
   it('renders a real PNG and includes an absolute http(s) URL to it in the tool text output', async () => {
-    const { ctx, tool, dispose } = await createTestContext({ host: '127.0.0.1', port: 3080, register: () => () => {} })
+    const { ctx, tool, dispose } = await createTestContext({ getOrigin: () => 'http://127.0.0.1:3080' })
 
     const value = await tool.execute(
       { type: 'bar', x: 'month', y: 'revenue', data: [{ month: 'Jan', revenue: 10 }, { month: 'Feb', revenue: 20 }] },
@@ -74,15 +72,17 @@ describe('da_render_chart image output', () => {
     await dispose()
   })
 
-  it('substitutes localhost for a 0.0.0.0 webServer host, since trust.ts recognizes that but not 0.0.0.0 as an Origin', async () => {
-    const { tool, dispose } = await createTestContext({ host: '0.0.0.0', port: 3080, register: () => () => {} })
+  it('omits the imageUrl key when the webServer has no URL-expressible origin', async () => {
+    const { tool, dispose } = await createTestContext({
+      getOrigin: () => { throw new Error('webserver: bind address carries an interface zone id') },
+    })
 
     const value = await tool.execute(
       { type: 'bar', x: 'month', y: 'revenue', data: [{ month: 'Jan', revenue: 10 }] },
       {},
     ) as { imageUrl?: string }
 
-    expect(value.imageUrl).toMatch(/^http:\/\/localhost:3080/)
+    expect('imageUrl' in value).toBe(false)
     await dispose()
   })
 

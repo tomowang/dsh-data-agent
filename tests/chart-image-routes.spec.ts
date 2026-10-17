@@ -29,6 +29,8 @@ async function createTestContext(): Promise<{ ctx: Context, handler: (req: Incom
   ctx.webServer = {
     host: '127.0.0.1',
     port: 3080,
+    protocol: 'http:',
+    getOrigin: () => 'http://127.0.0.1:3080',
     register: (route: { handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void> }) => {
       handler = route.handler
       return () => { handler = undefined }
@@ -40,18 +42,18 @@ async function createTestContext(): Promise<{ ctx: Context, handler: (req: Incom
 }
 
 describe('chartImageUrl', () => {
-  it('builds an absolute http URL from the webServer host and port', () => {
+  it('builds an absolute URL from the webServer origin', () => {
     const ctx = new Context()
     // `ctx.provide`, not plain assignment: `chartImageUrl` reads via `ctx.get`, which
     // only sees names actually registered through Cordis's provide/service registry.
-    ctx.provide('webServer', { host: '127.0.0.1', port: 3080, register: () => () => {} })
+    ctx.provide('webServer', { getOrigin: () => 'http://127.0.0.1:3080' })
     expect(chartImageUrl(ctx, 'abc')).toBe(`http://127.0.0.1:3080${CHART_IMAGE_ROUTE_PREFIX}abc.png`)
   })
 
-  it('substitutes localhost for 0.0.0.0, which is always a trusted host', () => {
+  it('keeps the origin\'s https protocol and bracketed IPv6 host', () => {
     const ctx = new Context()
-    ctx.provide('webServer', { host: '0.0.0.0', port: 3080, register: () => () => {} })
-    expect(chartImageUrl(ctx, 'abc')).toBe(`http://localhost:3080${CHART_IMAGE_ROUTE_PREFIX}abc.png`)
+    ctx.provide('webServer', { getOrigin: () => 'https://[fd00::1]:3443' })
+    expect(chartImageUrl(ctx, 'abc')).toBe(`https://[fd00::1]:3443${CHART_IMAGE_ROUTE_PREFIX}abc.png`)
   })
 })
 
@@ -93,6 +95,8 @@ describe('chart-image routes', () => {
     ctx.webServer = {
       host: '127.0.0.1',
       port: 3080,
+      protocol: 'http:',
+      getOrigin: () => 'http://127.0.0.1:3080',
       register: (route: { path: string }) => {
         if (routes.has(route.path)) throw new Error(`webserver: duplicate prefix route "${route.path}"`)
         routes.add(route.path)

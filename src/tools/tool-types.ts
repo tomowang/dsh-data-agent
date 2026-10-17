@@ -46,6 +46,7 @@ export interface ToolRunContext {
 export interface ToolOutputDefinition {
   readonly schema: JsonSchemaNode
   render(args: unknown, value: unknown): ToolContentBlock[]
+  /** Pure, JSON-safe; since dsh 0.2.1 it also runs for nested PTC (`run_code`) calls, not just top-level ones. */
   presentationMeta?(args: unknown, value: unknown): unknown
 }
 

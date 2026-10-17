@@ -1,27 +1,21 @@
 import type { IncomingMessage } from 'node:http'
-import { hostname, networkInterfaces } from 'node:os'
 import type { Context } from '@deepseek-ai/cordis'
 
 const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]']
 
 /**
  * Hostnames (in `URL#hostname` form, IPv6 bracketed) this server may be
- * reached by: loopback always, plus — when bound to every interface
- * (`0.0.0.0`) — each local interface address and the machine's hostname, so
- * a deliberate LAN deployment keeps working.
+ * reached by: loopback always, plus the listener's own bind address. Since
+ * dsh 0.2.1 that is one concrete interface address (the wildcard is rejected
+ * at load), the same pair the harness's own `/api` fence accepts without a
+ * `--trusted-host` entry. A `%zone` never appears in a `Host` header, so it's
+ * dropped before comparing.
  */
 function allowedHostnames(bindHost: string): Set<string> {
   const allowed = new Set(LOOPBACK_HOSTNAMES)
-  if (bindHost !== '0.0.0.0') {
-    allowed.add(bindHost.toLowerCase())
-    return allowed
-  }
-  allowed.add(hostname().toLowerCase())
-  for (const addresses of Object.values(networkInterfaces())) {
-    for (const { address, family } of addresses ?? []) {
-      allowed.add(family === 'IPv6' ? `[${address.split('%')[0]!.toLowerCase()}]` : address)
-    }
-  }
+  const address = bindHost.split('%')[0]!
+  const bindHostname = parseUrl(`http://${address.includes(':') ? `[${address}]` : address}`)?.hostname
+  if (bindHostname !== undefined) allowed.add(bindHostname)
   return allowed
 }
 
@@ -47,10 +41,10 @@ function effectivePort(url: URL): string {
  * including from the desktop app's non-same-site page), so this reproduces
  * the fence:
  *
- * - `Host` must name this server: a loopback name or, on a `0.0.0.0` bind, one
- *   of this machine's own addresses, on the server's port. This is the
- *   DNS-rebinding defense: a rebound page's requests carry the attacker's
- *   hostname in `Host`, even though they reach 127.0.0.1.
+ * - `Host` must name this server: a loopback name or its bind address, on the
+ *   server's port (a port-less `Host` defaults per the listener's protocol).
+ *   This is the DNS-rebinding defense: a rebound page's requests carry the
+ *   attacker's hostname in `Host`, even though they reach 127.0.0.1.
  * - `Origin`, when present, must be exactly this `Host` (same-origin). Browsers
  *   omit `Origin` on some same-origin GETs; a non-browser client (curl, a
  *   test) may omit it entirely. Either is fine once `Host` has passed.
@@ -58,7 +52,7 @@ function effectivePort(url: URL): string {
 export function isTrustedRequest(ctx: Context, req: IncomingMessage): boolean {
   const hostHeader = req.headers.host
   if (hostHeader === undefined) return false
-  const host = parseUrl(`http://${hostHeader}`)
+  const host = parseUrl(`${ctx.webServer.protocol}//${hostHeader}`)
   if (host === undefined || host.pathname !== '/' || host.username !== '' || host.password !== '') return false
   if (effectivePort(host) !== String(ctx.webServer.port)) return false
   if (!allowedHostnames(ctx.webServer.host).has(host.hostname)) return false

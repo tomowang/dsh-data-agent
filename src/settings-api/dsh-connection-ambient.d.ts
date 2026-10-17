@@ -2,7 +2,7 @@
 // Fetch-route registry this plugin uses. Same rationale as
 // dsh-webserver-ambient.d.ts: the published `@deepseek-ai/dsh-client-connection`
 // (0.0.1-rc.1) is far behind the harness. Verified against
-// packages/client/connection/src/rpc.ts at dsh-v0.1.7-rc.2; the registry has
+// packages/client/connection/src/rpc.ts at dsh-v0.2.1-rc.2; the registry has
 // existed since the 0.1.5 line.
 import type {} from '@deepseek-ai/cordis'
 

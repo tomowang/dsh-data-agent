@@ -53,7 +53,7 @@
     "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh": ">=0.1.7-rc.2"
+    "@deepseek-ai/dsh": ">=0.2.1-rc.2"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh": {

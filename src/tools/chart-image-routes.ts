@@ -17,9 +17,9 @@ export const CHART_IMAGE_ROUTE_PREFIX = `${ROUTE_PATH}/`
  * size/timing/permission rules) — never as a URL resolved against the page's
  * origin. A plain `http(s)://` URL is the one image form it always renders,
  * including mid-stream, so that's what `da_render_chart` must embed instead
- * of the bare route path. `0.0.0.0` isn't itself a browsable host, so it's
- * swapped for `'localhost'`, which is always reachable and always among the
- * hosts `trust.ts`'s `isTrustedRequest` accepts.
+ * of the bare route path. `webServer.getOrigin()` supplies the protocol (TLS
+ * listeners serve `https:`), the bracketed IPv6 form, and the bound port; its
+ * host is the bind address, which `trust.ts`'s `isTrustedRequest` accepts.
  *
  * Reads `webServer` via `ctx.get`, not direct `ctx.webServer` access: this is
  * called from `chart-image.ts`, itself called from `render-chart.ts`'s own
@@ -33,8 +33,7 @@ export const CHART_IMAGE_ROUTE_PREFIX = `${ROUTE_PATH}/`
 export function chartImageUrl(ctx: Context, id: string): string {
   const webServer = ctx.get('webServer')
   if (webServer === undefined) throw new Error('chartImageUrl: no webServer mounted')
-  const host = webServer.host === '0.0.0.0' ? 'localhost' : webServer.host
-  return `http://${host}:${webServer.port}${CHART_IMAGE_ROUTE_PREFIX}${id}.png`
+  return `${webServer.getOrigin()}${CHART_IMAGE_ROUTE_PREFIX}${id}.png`
 }
 
 /**

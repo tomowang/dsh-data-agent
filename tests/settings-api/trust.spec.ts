@@ -1,10 +1,9 @@
 import type { IncomingMessage } from 'node:http'
-import { networkInterfaces } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { isTrustedRequest } from '../../src/settings-api/trust.ts'
 
-function fakeCtx(host: '127.0.0.1' | '0.0.0.0', port = 3080) {
-  return { webServer: { host, port } } as Parameters<typeof isTrustedRequest>[0]
+function fakeCtx(host: string, port = 3080, protocol: 'http:' | 'https:' = 'http:') {
+  return { webServer: { host, port, protocol } } as Parameters<typeof isTrustedRequest>[0]
 }
 
 function fakeReq(host: string | undefined, origin?: string): IncomingMessage {
@@ -32,19 +31,24 @@ describe('isTrustedRequest', () => {
       expect(isTrustedRequest(fakeCtx('127.0.0.1'), fakeReq('user@127.0.0.1:3080'))).toBe(false)
     })
 
-    it('treats a missing port as 80', () => {
+    it('treats a missing port as the listener protocol\'s default', () => {
       expect(isTrustedRequest(fakeCtx('127.0.0.1', 80), fakeReq('localhost'))).toBe(true)
+      expect(isTrustedRequest(fakeCtx('127.0.0.1', 443, 'https:'), fakeReq('localhost'))).toBe(true)
+      expect(isTrustedRequest(fakeCtx('127.0.0.1', 80, 'https:'), fakeReq('localhost'))).toBe(false)
     })
 
-    it('on a 0.0.0.0 bind, also trusts this machine\'s own interface addresses, but still not foreign names', () => {
-      const lanAddress = Object.values(networkInterfaces()).flat()
-        .find(entry => entry?.family === 'IPv4' && !entry.internal)?.address
-      if (lanAddress !== undefined) {
-        expect(isTrustedRequest(fakeCtx('0.0.0.0'), fakeReq(`${lanAddress}:3080`))).toBe(true)
-        expect(isTrustedRequest(fakeCtx('127.0.0.1'), fakeReq(`${lanAddress}:3080`))).toBe(false)
-      }
-      expect(isTrustedRequest(fakeCtx('0.0.0.0'), fakeReq('evil.example:3080'))).toBe(false)
-      expect(isTrustedRequest(fakeCtx('0.0.0.0'), fakeReq('0.0.0.0:3080'))).toBe(false)
+    it('on a non-loopback bind, also trusts the bind address itself, but no other interface or name', () => {
+      expect(isTrustedRequest(fakeCtx('192.168.1.20'), fakeReq('192.168.1.20:3080'))).toBe(true)
+      expect(isTrustedRequest(fakeCtx('192.168.1.20'), fakeReq('localhost:3080'))).toBe(true)
+      expect(isTrustedRequest(fakeCtx('192.168.1.20'), fakeReq('192.168.1.21:3080'))).toBe(false)
+      expect(isTrustedRequest(fakeCtx('127.0.0.1'), fakeReq('192.168.1.20:3080'))).toBe(false)
+      expect(isTrustedRequest(fakeCtx('192.168.1.20'), fakeReq('evil.example:3080'))).toBe(false)
+    })
+
+    it('matches an IPv6 bind address in its bracketed, normalized form, ignoring a zone id', () => {
+      expect(isTrustedRequest(fakeCtx('FD00:0::1'), fakeReq('[fd00::1]:3080'))).toBe(true)
+      expect(isTrustedRequest(fakeCtx('fe80::1%eth0'), fakeReq('[fe80::1]:3080'))).toBe(true)
+      expect(isTrustedRequest(fakeCtx('fd00::1'), fakeReq('[fd00::2]:3080'))).toBe(false)
     })
   })
 
