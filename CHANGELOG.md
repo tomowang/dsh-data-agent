@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.2] - 2026-11-24
+
+### Bug Fixes
+
+- Sync with dsh 0.2.2 APIs and declare engine requirements
+
 ## [0.5.1] - 2026-10-17
 
 ### Bug Fixes
