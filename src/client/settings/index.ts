@@ -1,21 +1,23 @@
+import * as React from 'react'
 import type { Context } from '@deepseek-ai/cordis'
+import { IconDatabaseOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DataAgentPanel } from './DataAgentPanel.tsx'
-import { registerSettingsNavIcon } from './settings-nav-icon.ts'
 import { en, zh } from './locales.ts'
 
 /** Dictionary namespace owned by this section. */
 const NS = 'settings.data-sources'
 
+/** Settings nav-rail icon rendered into the shell's `settings.section.icon` slot. */
+function DataSourcesNavIcon({ size }: { size: number }): React.ReactElement {
+  return React.createElement(IconDatabaseOutlineMedium, { size })
+}
+
 /**
  * Registers `data-sources` as its own top-level Settings nav entry (a
  * `settings.section` list-slot registration — the same mechanism
  * `ui-settings-models`/`ui-settings-plugins`/`ui-agent-preset` use for their
- * own sections), satisfying "its own menu entry" directly. The shell's nav
- * icon lookup is a hardcoded id-keyed table that falls back to a generic
- * gear icon for unrecognized ids, and `settings.section` has no icon field
- * to carry one through — so `registerSettingsNavIcon` (settings-nav-icon.ts)
- * applies the DOM-marker + CSS-mask workaround the DSH-better-sidebar
- * plugin uses for its own section, swapping in a database glyph instead.
+ * own sections), along with its database glyph via the `settings.section.icon`
+ * slot (introduced in dsh 0.2.2) keyed by the same `id`.
  *
  * `locale` is declared in `inject` (not read with `ctx.get`) on purpose:
  * every reference settings section in the harness (ui-settings-general,
@@ -33,10 +35,10 @@ export const dataSourcesSettingsSection = {
     const t = ctx.locale.bind(NS)
     ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-data-agent: settings section dictionary')
 
-    ctx.effect(
-      () => registerSettingsNavIcon(() => t('nav')),
-      'dsh-data-agent: settings navigation icon',
-    )
+    ctx.slots.inject('settings.section.icon', () => ctx.slots.register({
+      name: 'settings.section.icon',
+      id: 'data-sources',
+    }, DataSourcesNavIcon))
 
     ctx.slots.inject('settings.section', () => ctx.slots.register({
       name: 'settings.section',

@@ -8,8 +8,8 @@
 // harness's own extension cookbook), so we author that shape by hand and
 // validate arguments ourselves per tool instead of relying on `defineTool`'s
 // automatic pre-validation. Verified directly against
-// packages/core/tools/src/{index,schema,json-schema}.ts in the harness
-// checkout, not guessed.
+// packages/core/tools/src/{index,contracts,schema,json-schema}.ts at
+// dsh-v0.2.2-rc.5, not guessed.
 
 /** The enforced JSON Schema subset the harness accepts for tool parameters/output. */
 export interface JsonSchemaNode {
@@ -56,6 +56,8 @@ export interface ToolDefinition {
   readonly parameters: JsonSchemaNode
   readonly output: ToolOutputDefinition
   execute(args: unknown, exec: ToolRunContext): Promise<unknown>
+  timeoutMs?: number
+  isConcurrencySafe?(args: unknown): boolean
 }
 
 /** The model-facing projection `ToolsService.schemas()` returns — name/description/parameters, no execute/render. */
@@ -67,7 +69,7 @@ export interface ToolSchemaSummary {
 
 declare module '@deepseek-ai/cordis' {
   interface ToolsService {
-    register(definition: ToolDefinition): () => void
+    register(definition: ToolDefinition, options?: { readonly when?: unknown }): () => void
     /** Every tool visible in the global scope, projected onto its model-facing schema fields. */
     schemas(): ToolSchemaSummary[]
   }

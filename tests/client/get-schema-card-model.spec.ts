@@ -14,8 +14,9 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
 }
 
 describe('getSchemaCardModel', () => {
-  it('returns null for a running (unsettled) call', () => {
-    expect(getSchemaCardModel({ callId: 'call-1', name: 'da_get_schema', argsRaw: '{}' })).toBeNull()
+  it('returns null for a preparing or running (unsettled) call', () => {
+    expect(getSchemaCardModel({ phase: 'preparing', callId: 'call-1', name: 'da_get_schema' })).toBeNull()
+    expect(getSchemaCardModel({ phase: 'start', callId: 'call-1', name: 'da_get_schema', argsRaw: '{}' })).toBeNull()
   })
 
   it('returns null for an error result', () => {

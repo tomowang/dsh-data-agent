@@ -39,7 +39,7 @@ Connections, schema, and read-only toggling are also manageable straight from Se
 
 ## Install
 
-Requires dsh 0.2.1-rc.2 or later, and a `web` profile already booted at least once (`dsh --profile web`). The package declares this as a `peerDependencies` range on `@deepseek-ai/dsh`: dsh 0.1.7-rc.1 and later refuse to load the plugin on an older runtime, while releases before that don't check the range at all.
+Requires Node.js 24.9 or later, dsh 0.2.2-rc.1 or later, and a `web` profile already booted at least once (`dsh --profile web`). The package declares `engines.dsh` (checked first by dsh 0.2.1-alpha.4+) alongside a matching `@deepseek-ai/dsh` `peerDependencies` range for older runtimes, so dsh refuses to load the plugin on an incompatible version.
 
 ```sh
 # 1. Install the dsh launcher

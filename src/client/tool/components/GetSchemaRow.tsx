@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { SchemaResult } from '../../../data-source/types.ts'
+import type { SchemaResult, TableInfo } from '../../../data-source/types.ts'
 import * as api from '../../settings/api.ts'
 import { SchemaTree } from '../../shared/SchemaTree.tsx'
 import { getSchemaCardModel } from '../models/get-schema-card-model.ts'
@@ -8,15 +8,20 @@ import { fallbackText, type ToolRowProps } from '../tool-view-types.ts'
 /**
  * `da_get_schema` Chat card. Claiming this key suppresses the generic fallback
  * for every `da_get_schema` result, so this component must cover every shape:
- * running, error, and malformed/legacy `meta` all render as plain text.
+ * preparing, running, error, and malformed/legacy `meta` all render as plain text.
  */
 export function GetSchemaRow({ block }: ToolRowProps): React.ReactElement {
   const initial = getSchemaCardModel(block)
-  const [schema, setSchema] = React.useState<SchemaResult | null>(initial)
+  const [expandedTables, setExpandedTables] = React.useState<Record<string, TableInfo>>({})
   const [loadingTables, setLoadingTables] = React.useState<Set<string>>(new Set())
 
-  if (schema === null) {
+  if (initial === null) {
     return <div style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{fallbackText(block)}</div>
+  }
+
+  const schema: SchemaResult = {
+    ...initial,
+    tables: initial.tables.map(table => expandedTables[table.name] ?? table),
   }
 
   // A row's `columns` starts undefined for the database-scope list this card
@@ -29,9 +34,7 @@ export function GetSchemaRow({ block }: ToolRowProps): React.ReactElement {
       const detail = await api.getSchema(schema.sourceName, table)
       const expandedTable = detail.tables[0]
       if (expandedTable === undefined) return
-      setSchema(prev => prev === null
-        ? prev
-        : { ...prev, tables: prev.tables.map(t => (t.name === table ? expandedTable : t)) })
+      setExpandedTables(prev => ({ ...prev, [table]: expandedTable }))
     } finally {
       setLoadingTables((prev) => {
         const next = new Set(prev)

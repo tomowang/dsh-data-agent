@@ -8,7 +8,11 @@ allowBuilds:
   skia-canvas: true
 
 minimumReleaseAgeExclude:
-  - '@deepseek-ai/dsh-client-ui-primitives@0.2.1-rc.2'
+  - '@deepseek-ai/dsh-atomic-write@0.2.2-rc.5'
+  - '@deepseek-ai/dsh-brand@0.2.2-rc.5'
+  - '@deepseek-ai/dsh-client-ui-primitives@0.2.2-rc.5'
+  - '@deepseek-ai/dsh-credentials@0.2.2-rc.5'
+  - '@deepseek-ai/dsh-home-paths@0.2.2-rc.5'
 
 # package.json declares an optional `@deepseek-ai/dsh` peer purely as a
 # compatibility range the dsh runtime checks when it loads the plugin;

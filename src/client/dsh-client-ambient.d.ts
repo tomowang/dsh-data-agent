@@ -28,13 +28,14 @@ declare module '@deepseek-ai/cordis' {
   interface SlotChildDescriptor {
     kind: 'single' | 'list'
     scope?: string
+    inline?: boolean
   }
 
   interface SlotRegistration<Props> {
     name: string
     /** Discriminant for a `kind: 'keyed'` slot (e.g. `tool.call.toolview`). */
     key?: string
-    /** Discriminant + nav identity for a `kind: 'list'` slot (e.g. `settings.section`). */
+    /** Discriminant + nav identity for a `kind: 'list'` slot (e.g. `settings.section`, `settings.section.icon`). */
     id?: string
     /** Nav/list position; lower sorts first. */
     order?: number
@@ -49,7 +50,7 @@ declare module '@deepseek-ai/cordis' {
     /** Register a component into a keyed or list slot; returns its disposer. */
     register<Props>(registration: SlotRegistration<Props>, component: (props: Props) => unknown): () => void
     /** Defer a slot registration until the named slot exists, re-running `factory` on slot changes. */
-    inject(slotName: string, factory: () => (() => void) | void): void
+    inject(slotName: string, factory: () => (() => void) | Iterable<() => void, void, void>): () => void
   }
 
   interface LocaleService {

@@ -27,7 +27,8 @@
     "access": "public"
   },
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": ">=24.9.0",
+    "dsh": ">=0.2.2-rc.1"
   },
   "packageManager": "pnpm@11.7.0",
   "dsh": {
@@ -53,7 +54,7 @@
     "changelog": "git-cliff --tag \"v$npm_package_version\" -o CHANGELOG.md"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh": ">=0.2.1-rc.2"
+    "@deepseek-ai/dsh": ">=0.2.2-rc.1"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh": {
@@ -62,9 +63,9 @@
   },
   "dependencies": {
     "@clickhouse/client": "^1.23.1",
-    "@deepseek-ai/dsh-atomic-write": "0.0.1-rc.1",
-    "@deepseek-ai/dsh-credentials": "0.0.1-rc.1",
-    "@deepseek-ai/dsh-home-paths": "0.0.1-rc.3",
+    "@deepseek-ai/dsh-atomic-write": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-credentials": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
     "chart.js": "^4.5.1",
     "mysql2": "^3.24.4",
     "node-sql-parser": "^5.4.0",
@@ -73,8 +74,8 @@
     "skia-canvas": "^3.0.8"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-rc.2",
+    "@deepseek-ai/cordis": "^4.1.0",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.5",
     "@deepseek-ai/schemastery": "^3.18.2",
     "@thesvg/react": "^3.3.7",
     "@types/node": "^26.5.1",

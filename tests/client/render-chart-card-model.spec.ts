@@ -14,8 +14,9 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
 }
 
 describe('renderChartCardModel', () => {
-  it('returns null for a running (unsettled) call', () => {
-    expect(renderChartCardModel({ callId: 'call-1', name: 'da_render_chart', argsRaw: '{}' })).toBeNull()
+  it('returns null for a preparing or running (unsettled) call', () => {
+    expect(renderChartCardModel({ phase: 'preparing', callId: 'call-1', name: 'da_render_chart' })).toBeNull()
+    expect(renderChartCardModel({ phase: 'start', callId: 'call-1', name: 'da_render_chart', argsRaw: '{}' })).toBeNull()
   })
 
   it('returns null for an error result', () => {

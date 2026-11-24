@@ -14,8 +14,9 @@ function settled(overrides: Partial<ToolResultNode> = {}): ToolResultNode {
 }
 
 describe('runSqlCardModel', () => {
-  it('returns null for a running (unsettled) call', () => {
-    expect(runSqlCardModel({ callId: 'call-1', name: 'da_run_sql', argsRaw: '{}' })).toBeNull()
+  it('returns null for a preparing or running (unsettled) call', () => {
+    expect(runSqlCardModel({ phase: 'preparing', callId: 'call-1', name: 'da_run_sql' })).toBeNull()
+    expect(runSqlCardModel({ phase: 'start', callId: 'call-1', name: 'da_run_sql', argsRaw: '{}' })).toBeNull()
   })
 
   it('returns null for an error result', () => {

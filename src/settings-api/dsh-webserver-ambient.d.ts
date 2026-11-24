@@ -3,7 +3,7 @@
 // (0.0.1-rc.1) predates a rename in the current monorepo source at the
 // installed `dsh` CLI's version line — the published package still uses
 // `ctx.httpServer`/`HttpServerService`, while the current source (verified
-// directly against packages/host/webserver/src/index.ts at dsh-v0.2.1-rc.2)
+// directly against packages/host/webserver/src/index.ts at dsh-v0.2.2-rc.5)
 // uses `ctx.webServer`/`WebServer`. Depending on the stale package would
 // either fail to compile against the real key or silently type-check against
 // the wrong one.

@@ -3,8 +3,8 @@
  * SchemaTree, used by both the Settings viewer and the chat card). Written
  * as a plain injected `<style>` tag rather than CSS Modules — this is an
  * out-of-tree plugin with no published build helper for the harness's CSS
- * Modules pipeline (see README's "The browser bundle" section) — following
- * the same idempotent-injection pattern `settings-nav-icon.ts` already uses.
+ * Modules pipeline (see README's "Project layout" section) — injecting one
+ * idempotent `<style>` tag per document.
  * Every color/spacing choice rides the host's own `--dsw-alias-*` design
  * tokens (see `ui-settings-models/src/client/ModelsSection.module.css` in
  * the deepseek-harness checkout) so the panel matches Settings → Models
